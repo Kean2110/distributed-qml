@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import collections
+import config
 
-THRESHOLD = 0.5
 
 def load_mnist_data() -> tuple[np.ndarray, np.ndarray]:
     return tf.keras.datasets.mnist.load_data()
@@ -59,11 +59,11 @@ def remove_contradicting_samples(xs: np.ndarray, ys: np.ndarray) -> (np.ndarray,
 
     return np.array(new_x), np.array(new_y)
 
-def encode_array(data: np.ndarray, threshold: int = THRESHOLD) -> np.ndarray:
+def encode_array(data: np.ndarray, threshold: int = config.ENCODING_THRESHOLD) -> np.ndarray:
     data_bin = np.array(data > threshold, dtype=np.float32)
     return data_bin
 
-def preprocessing_main() -> tuple[np.ndarray, np.ndarray]:
+def preprocessing_binary_encoding() -> tuple[np.ndarray, np.ndarray]:
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()  
     (x_train, y_train) = filter_zeros_and_ones(x_train, y_train)
     (x_test, y_test) = filter_zeros_and_ones(x_test, y_test)
@@ -73,15 +73,30 @@ def preprocessing_main() -> tuple[np.ndarray, np.ndarray]:
     print("Number of testing samples: ", str(len(y_test)))
     x_train = downfilter_images(x_train, (4,4))
     x_test = downfilter_images(x_test, (4,4))
-    x_train, y_train = remove_contradicting_samples(x_train, y_train)
+    if config.REMOVE_CONTRADICTING:
+        x_train, y_train = remove_contradicting_samples(x_train, y_train)
     x_train_bin = encode_array(x_train)
     x_test_bin = encode_array(x_test)
     return (x_train_bin, y_train), (x_test_bin, y_test)
+
+def preprocessing_amplitude_encoding() -> tuple[np.ndarray, np.ndarray]:
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()  
+    (x_train, y_train) = filter_zeros_and_ones(x_train, y_train)
+    (x_test, y_test) = filter_zeros_and_ones(x_test, y_test)
+    x_train = rescale_images(x_train, 255.0)
+    x_test = rescale_images(x_test, 255.0)
+    print("Number of training samples ", str(len(y_train)))
+    print("Number of testing samples: ", str(len(y_test)))
+    x_train = downfilter_images(x_train, (4,4))
+    x_test = downfilter_images(x_test, (4,4))
+    if config.REMOVE_CONTRADICTING:
+        x_train, y_train = remove_contradicting_samples(x_train, y_train)
+    return (x_train, y_train), (x_test, y_test)
     
 
 if __name__ == "__main__":  
     start = time.process_time()
-    preprocessing_main()
+    preprocessing_amplitude_encoding()
     end = time.process_time()
     elapsed = end - start
     print("Processing time: ", elapsed)
