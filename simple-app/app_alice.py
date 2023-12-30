@@ -4,7 +4,7 @@ from netqasm.sdk import Qubit
 
 def main(app_config=None):
    # Setup a connection to QNodeOS
-    with NetQASMConnection("alice", log_config=app_config.log_config) as alice:
+    with NetQASMConnection("alice") as alice:
         # Create a qubit
         q = Qubit(alice)
         # Perform a Hadamard gate
