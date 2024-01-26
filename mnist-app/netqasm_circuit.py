@@ -11,19 +11,13 @@ logger = get_netqasm_logger()
 def encode_data_in_circuit(image: np.ndarray):
     flattened_image = np.ndarray.flatten(image)
     print(flattened_image.shape)
-    circuit = []
-    #epr_socket = EPRSocket("encoding")
-    conn = NetQASMConnection("encoding")
-    with conn:
-        outcomes = conn.new_array(len(flattened_image))
-        values = conn.new_array(len(flattened_image), init_values=flattened_image)
-        circuit = [Qubit(conn)] * len(values)
-        print(circuit)
-        with values.foreach() as v:
-            print(v)
-            q = Qubit(conn=conn)
-            q.rot_X(v)
-        conn.flush()
+    with NetQASMConnection("encoding") as encoding:
+        outcomes = encoding.new_array(len(flattened_image))
+        values = encoding.new_array(len(flattened_image), init_values=flattened_image)
+        with encoding.loop(len(flattened_image)) as i:
+            q = Qubit(encoding)
+            q.rot_X(values[i])
+        encoding.flush()
     return circuit
     
 
@@ -39,7 +33,7 @@ def run_circuit():
 def create_app():
     app_instance = default_app_instance(
         [
-            ("Circuit", run_circuit)
+            ("encoding", run_circuit)
         ]
     )
     

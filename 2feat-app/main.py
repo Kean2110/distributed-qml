@@ -1,0 +1,49 @@
+from netqasm.runtime.application import default_app_instance
+from netqasm.sdk.external import simulate_application
+from netqasm.runtime.debug import run_application
+import glob
+import yaml
+import os
+import app_server
+import app_client1
+import app_client2
+
+"""
+Entry point if we don't want to use `netqasm simulate`, e.g. for debugging
+"""
+
+
+def read_params_from_yaml():
+    # get all config files in current dir
+    yaml_files = glob.glob('*.yaml')
+    inputs = {}
+    # read yaml files and add to inputs
+    for file in yaml_files:
+        with open(file, 'r') as config_file:
+            data = yaml.safe_load(config_file)
+            instance_name, _ = os.path.splitext(file)
+            inputs[instance_name] = data
+    return inputs
+        
+
+
+def create_app():
+    app_instance = default_app_instance(
+        [
+            ("server", app_server.main),
+            ("client1", app_client1.main),
+            ("client2", app_client2.main)
+        ]
+    )
+    
+    app_instance.program_inputs = read_params_from_yaml()
+    
+    simulate_application(
+        app_instance,
+        use_app_config=True,
+        post_function=None,
+        enable_logging=True
+    )
+    
+if __name__ == "__main__":
+    create_app()

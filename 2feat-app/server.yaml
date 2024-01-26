@@ -1,0 +1,4 @@
+theta_0: 0.5
+theta_1: 1
+num_iter: 2
+batch_size: 16
