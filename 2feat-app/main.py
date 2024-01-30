@@ -14,14 +14,18 @@ Entry point if we don't want to use `netqasm simulate`, e.g. for debugging
 
 
 def read_params_from_yaml():
-    # get all config files in current dir
-    yaml_files = glob.glob('*.yaml')
+    # Get the directory of the current file
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    # Search for YAML files in the current directory
+    yaml_files = glob.glob(os.path.join(current_directory, '*.yaml'))
     inputs = {}
     # read yaml files and add to inputs
     for file in yaml_files:
         with open(file, 'r') as config_file:
-            data = yaml.safe_load(config_file)
-            instance_name, _ = os.path.splitext(file)
+            data = yaml.safe_load(config_file) or {}
+            # obtain file_name of yaml by removing directory path and file extension (.yaml)
+            file_name = os.path.basename(file)
+            instance_name, _ = os.path.splitext(file_name)
             inputs[instance_name] = data
     return inputs
         
@@ -40,9 +44,9 @@ def create_app():
     
     simulate_application(
         app_instance,
-        use_app_config=True,
+        use_app_config=False,
         post_function=None,
-        enable_logging=True
+        enable_logging=False
     )
     
 if __name__ == "__main__":
