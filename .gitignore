@@ -1,6 +1,6 @@
 # Project specific
 log/
-
+scratches/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
