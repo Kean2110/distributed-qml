@@ -3,3 +3,4 @@ theta_initial_1: 1
 num_iter: 2
 batch_size: 16
 learning_rate: 0.01
+random_seed: 42
