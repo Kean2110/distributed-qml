@@ -10,22 +10,17 @@ import app_node2
 
 def create_app():
     app_instance = default_app_instance(
-        [
-            ("node1", app_node1.main),
-            ("node2", app_node2.main)
-        ]
+        [("node1", app_node1.main), ("node2", app_node2.main)]
     )
-    
+
     log_config = LogConfig(log_dir="log/")
-    
+
     app_instance.logging_cfg = log_config
-    
+
     simulate_application(
-        app_instance,
-        use_app_config=True,
-        post_function=None,
-        enable_logging=False
+        app_instance, use_app_config=True, post_function=None, enable_logging=False
     )
-    
+
+
 if __name__ == "__main__":
     create_app()

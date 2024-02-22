@@ -12,14 +12,16 @@ def teleport_qubit(qubit, conn, classical_socket, epr_socket):
         qubit.H()
         m1 = qubit.measure()
         m2 = epr.measure()
-        
+
     # send correction information
-    print(f"`sender` measured the following teleportation corrections: m1 = {m1}, m2 = {m2}")
+    print(
+        f"`sender` measured the following teleportation corrections: m1 = {m1}, m2 = {m2}"
+    )
     print("`sender` will send the corrections to `receiver`")
 
     classical_socket.send_structured(StructuredMessage("Corrections", (m1, m2)))
 
- 
+
 def receive_teleported_qubit(conn, classical_socket, epr_socket):
     with conn:
         epr = epr_socket.recv_keep()[0]
@@ -37,4 +39,3 @@ def receive_teleported_qubit(conn, classical_socket, epr_socket):
 
         conn.flush()
     return epr
-    
