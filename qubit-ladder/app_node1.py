@@ -14,19 +14,24 @@ def main(app_config=None):
 
     # Initialize the connection
     node1 = NetQASMConnection(
-        app_name=app_config.app_name, log_config=log_config, epr_sockets=[epr_socket]
+        app_name="node1", log_config=log_config, epr_sockets=[epr_socket]
     )
     
     with node1:
+        # create EPR pair
+        epr_0 = epr_socket.create_keep()[0]
+        node1.flush()
+        
         # create two qubits
         q0 = Qubit(node1)
         q1 = Qubit(node1)
         
+        q0.X()
+        #q1.X()
+        
+        
         # CNOT between q0 and q1
         q0.cnot(q1)
-
-        # create EPR pair
-        epr_0 = epr_socket.create_keep()[0]
         
         # CNOT between q1 and epr_0
         q1.cnot(epr_0)
@@ -45,7 +50,7 @@ def main(app_config=None):
         target_meas = socket.recv()
         if target_meas == "1":
             q1.Z()
-
+            
         node1.flush()
         
         q0_state = get_qubit_state(q0)
