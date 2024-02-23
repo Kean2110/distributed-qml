@@ -1,6 +1,6 @@
 from netqasm.sdk.external import NetQASMConnection, BroadcastChannel, Socket
 from typing import List, Tuple, Union, Literal
-from netqasm.sdk import Qubit
+from netqasm.sdk import Qubit, EPRSocket
 from netqasm.sdk.toolbox import set_qubit_state
 from netqasm.sdk.classical_communication.message import StructuredMessage
 import numpy as np
@@ -136,7 +136,61 @@ def teleport_qubit(epr_socket, classical_socket, netqasm_connection, feature, th
     m1, m2 = int(m1), int(m2)
     
     classical_socket.send_structured(StructuredMessage("Corrections", (m1,m2)))
+   
+   
+def remote_cnot_control(epr_socket: EPRSocket, classical_socket: Socket, netqasm_conn: NetQASMConnection, control_qubit: Qubit):
+    with netqasm_conn:
+        # create EPR pair
+        epr_ctrl = epr_socket.create_keep()[0]
+        netqasm_conn.flush()
+        
+        # CNOT between ctrl and epr
+        control_qubit.cnot(epr_ctrl)
+        
+        # measure epr
+        epr_ctrl_meas = epr_ctrl.measure()
+        netqasm_conn.flush()
+        
+        classical_socket.send(str(epr_ctrl_meas))
+        
+        # wait for target's measurement outcome to undo potential entanglement
+        # between his EPR half and the control qubit
+        target_meas = classical_socket.recv()
+        if target_meas == "1":
+            control_qubit.Z()
+        netqasm_conn.flush()
+        
+        
+def remote_cnot_target(epr_socket: EPRSocket, classical_socket: Socket, netqasm_conn: NetQASMConnection, target_qubit: Qubit):
+    with netqasm_conn:
+        # receive EPR qubit
+        epr_target = epr_socket.recv_keep()[0]
+        netqasm_conn.flush()
+
+        # receive measurement result from EPR pair from controller
+        epr_meas = classical_socket.recv()
+
+        # apply X gate if control epr qubit is 1
+        if epr_meas == "1":
+            epr_target.X()
+
+        # apply CNOT between EPR Qubit and target qubit
+        epr_target.cnot(target_qubit)
+
+        # apply H gate to epr target qubit and measure it and send it to controller
+        epr_target.H()
+
+        # undo any potential entanglement between `epr` and controller's control qubit
+        epr_target_meas = epr_target.measure()
+        netqasm_conn.flush()
+
+        # Controller will do a controlled-Z based on the outcome to undo the entanglement
+        classical_socket.send(str(epr_target_meas))
+        
+        
+        
     
+ 
 
 if __name__ == '__main__':
     n = 100
