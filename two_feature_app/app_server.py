@@ -10,147 +10,6 @@ import math
 
 logger = get_netqasm_logger()
 
-"""
-def prepare_dataset():
-    iris = datasets.load_iris()
-    # use only first two features of the iris dataset
-    X = iris.data[:,:2]
-    # filter out only zero and one classes
-    filter_mask = np.isin(iris.target, [0,1])
-    X_filtered = X[filter_mask]
-    y_filtered = iris.target[filter_mask]
-    # min max scale features to range between 0 and 1
-    scaler = MinMaxScaler(feature_range=(0,1))
-    X_scaled = scaler.fit_transform(X_filtered)
-    return X_scaled, y_filtered
-
-
-def calculate_loss(y_true, y_pred):
-    loss = log_loss(y_true, y_pred, labels=[0,1])
-    return loss
-
-
-def run_circuit(features, params, sockets, server):
-    # Send first feature to client 1
-    send_value(sockets[0], features[0])
-    # Send second feature to client 2
-    send_value(sockets[1], features[1])
-    
-    # Send theta0 to first client
-    send_value(sockets[0], params[0])
-    # Send theta1 to second client
-    send_value(sockets[1], params[1])
-    
-    # Receive result from client 1
-    result_client1 = sockets[0].recv(block=True)
-    # Receive result from client 2
-    result_client2 = sockets[1].recv(block=True)
-    # put results into list
-    qubit_results = [int(result_client1), int(result_client2)]
-    
-    # append to results the parity
-    predicted_label = check_parity(qubit_results)
-    
-    return predicted_label
-
-
-def process_batch(batch, labels, server, sockets, thetas, parameter_shift_delta = 0.001):
-    # In this way we can reuse the code for the first batches and the last smaller one
-    batch_results = np.empty(len(batch))
-    
-    # used for gradient calculation with parameter shift
-    batch_results_plus = np.empty((len(batch), len(thetas)))
-    batch_results_minus = np.empty((len(batch), len(thetas)))
-    
-    gradients = np.empty(len(thetas), float)
-    for i,sample in enumerate(batch):
-        # run the circuit
-        batch_results[i] = run_circuit(sample, thetas, sockets, server)
-        
-        # calculate gradients through parameter shift
-        for j in range(len(thetas)):
-            # copy the params to tweak them
-            thetas_plus = thetas.copy()
-            thetas_minus = thetas.copy()
-            
-            thetas_plus[j] += parameter_shift_delta
-            thetas_minus[j] -= parameter_shift_delta
-            
-            batch_results_plus[i][j] = run_circuit(sample, thetas_plus, sockets, server)
-            batch_results_minus[i][j] = run_circuit(sample, thetas_minus, sockets, server)     
-    
-    # calculate losses
-    for j in range(len(thetas)):    
-        plus_loss = calculate_loss(labels, batch_results_plus[:,j])
-        minus_loss = calculate_loss(labels, batch_results_minus[:,j])
-        gradient = (plus_loss - minus_loss) / (2 * parameter_shift_delta)
-        gradients[j] = gradient
-    loss = calculate_loss(labels, batch_results)
-    
-    return loss, gradients, batch_results
-    
-    
-def main(app_config=None, num_iter=1, theta_initial_0=0, theta_initial_1=0, batch_size=1, learning_rate=0.01, random_seed=42):
-    # setup classical socket connections
-    socket_client1 = Socket("server", "client1", socket_id=0)
-    socket_client2 = Socket("server", "client2", socket_id=1)
-    # setup EPR connections
-    epr_socket_client1 = EPRSocket(remote_app_name="client1", epr_socket_id=0, remote_epr_socket_id=0)
-    epr_socket_client2 = EPRSocket(remote_app_name="client2", epr_socket_id=1, remote_epr_socket_id=0)
-    server = NetQASMConnection(
-        app_name="server",
-        epr_sockets=[epr_socket_client1, epr_socket_client2],
-    )
-    X, y = prepare_dataset()
-    
-    # initialize weights as tensors
-    theta_0 = float(theta_initial_0)
-    theta_1 = float(theta_initial_1)
-    
-    with server:
-        # send parameters to the clients
-        params = {'n_iters': num_iter, 'n_samples': len(X), 'batch_size': batch_size, 'n_batches': math.ceil(len(X)/batch_size), 'n_thetas': 2}
-        send_dict(socket_client1, params)
-        send_dict(socket_client2, params)
-        
-        all_results = np.empty((num_iter, len(X)))
-        for i in range(num_iter):
-            print(f"ENTERED ITERATION {i+1}")
-            batches, labels = split_data_into_batches(X, y, batch_size, random_seed=random_seed)
-            iter_results = np.array([])
-            # process all batches except the last one
-            for b in range(len(batches) -1):
-                loss, gradients, batch_results = process_batch(batches[b], labels[b], server, [socket_client1, socket_client2], [theta_0, theta_1])
-                print(f"Calculated loss for iteration {i+1}, batch {b+1}: {loss}")
-                theta_0 -= learning_rate * gradients[0]
-                theta_1 -= learning_rate * gradients[1]
-                iter_results = np.append(iter_results, batch_results)
-                
-            # calculate last_batch seperately, because it might have a different length
-            last_batch = batches[-1]
-            last_labels = labels[-1]
-            # process the last batch
-            loss, gradients, batch_results = process_batch(last_batch, last_labels, server, [socket_client1, socket_client2], [theta_0, theta_1])
-            print(f"Calculated loss for iteration {i+1}, batch {len(batches) + 1}: {loss}")
-            
-            # adjust weights
-            theta_0 -= learning_rate * gradients[0]
-            theta_1 -= learning_rate * gradients[1]
-            
-            # append to results
-            iter_results = np.append(iter_results, batch_results)
-            all_results[i] = iter_results
-        print(all_results)
-    # return dict of values
-    return {
-        "results": all_results.tolist(),
-        "theta0": theta_0,
-        "theta1": theta_1
-    }
-    
-
-"""
-
 
 def main(app_config=None, num_iter=1, theta_initial_0=0, theta_initial_1=0, batch_size=1, learning_rate=0.01, random_seed=42):
     server = QMLServer(num_iter, [theta_initial_0, theta_initial_1], batch_size, learning_rate, random_seed)
@@ -177,10 +36,6 @@ class QMLServer:
         # setup EPR connections
         self.epr_socket_client1 = EPRSocket(remote_app_name="client1", epr_socket_id=0, remote_epr_socket_id=0)
         self.epr_socket_client2 = EPRSocket(remote_app_name="client2", epr_socket_id=1, remote_epr_socket_id=0)
-        self.server = NetQASMConnection(
-            app_name="server",
-            epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
-        )
         
         self.X, self.y = self.prepare_dataset()
         self.params = {
@@ -191,6 +46,10 @@ class QMLServer:
             'n_thetas': len(self.thetas)
         }
         self.all_results = np.empty((num_iter, len(self.X)))
+        self.server = NetQASMConnection(
+            app_name="server",
+            epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
+        )
     
     
     def run(self):
