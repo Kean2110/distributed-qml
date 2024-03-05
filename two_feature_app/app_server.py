@@ -50,6 +50,7 @@ class QMLServer:
             app_name="server",
             epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
         )
+        self.run_circuit_counter = 0
     
     
     def run(self):
@@ -86,6 +87,8 @@ class QMLServer:
                 
                 # add to all results
                 self.all_results[i] = iter_results
+        # send exit instruction to clients
+        self.send_exit_instructions()
         print(self.all_results)
         
     
@@ -100,7 +103,7 @@ class QMLServer:
         gradients = np.empty(len(self.thetas), float)
         for i,sample in enumerate(batch):
             # run the circuit
-            batch_results[i] = self.run_circuit(sample, self.thetas)
+            batch_results[i] = self.run_circuits(sample, self.thetas)
             
             # calculate gradients through parameter shift
             for j in range(len(self.thetas)):
@@ -111,8 +114,8 @@ class QMLServer:
                 thetas_plus[j] += self.parameter_shift_delta
                 thetas_minus[j] -= self.parameter_shift_delta
                 
-                batch_results_plus[i][j] = self.run_circuit(sample, thetas_plus)
-                batch_results_minus[i][j] = self.run_circuit(sample, thetas_minus)     
+                batch_results_plus[i][j] = self.run_circuits(sample, thetas_plus)
+                batch_results_minus[i][j] = self.run_circuits(sample, thetas_minus)     
         
         # calculate losses
         for j in range(len(self.thetas)):    
@@ -125,7 +128,9 @@ class QMLServer:
         return loss, gradients, batch_results
         
         
-    def run_circuit(self, features, params):
+    def run_circuits(self, features, params):
+        self.send_run_instructions()
+        
         # Send first feature to client 1
         send_value(self.socket_client1, features[0])
         # Send second feature to client 2
@@ -152,6 +157,16 @@ class QMLServer:
     def calculate_loss(self, y_true, y_pred):
         loss = log_loss(y_true, y_pred, labels=[0,1])
         return loss
+    
+    
+    def send_run_instructions(self):
+        self.socket_client1.send("RUN CIRCUIT")
+        self.socket_client2.send("RUN CIRCUIT")
+        
+    
+    def send_exit_instructions(self):
+        self.socket_client1.send("EXIT")
+        self.socket_client2.send("EXIT")
     
     
     def prepare_dataset(self):
