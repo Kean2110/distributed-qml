@@ -26,16 +26,13 @@ def main(app_config=None):
     batch_size = params['batch_size']
     n_batches = params['n_batches']
     n_thetas = params['n_thetas']
-    
-    circuit_runner_count = 0
+
     with client2:
         while True:
             instruction = socket_server.recv(block=True)
             if instruction == "EXIT":
                 break
             elif instruction == "RUN CIRCUIT":
-                circuit_runner_count += 1
-                print(f"Client2's circuit is running for the {circuit_runner_count} time")
                 run_circuit_locally(client2, socket_client1, socket_server, epr_socket_client1)
             else:
                 raise ValueError("Unregistered instruction received")                        

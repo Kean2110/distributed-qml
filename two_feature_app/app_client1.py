@@ -22,7 +22,6 @@ def main(app_config=None):
     # receive params
     params = receive_dict(socket_server)
     logger.info(f"Client1 received params dict: {params}")
-    circuit_runner_count = 0
     with client1: 
         while True:
             # receive instruction from server
@@ -30,8 +29,6 @@ def main(app_config=None):
             if instruction == "EXIT":
                 break
             elif instruction == "RUN CIRCUIT":
-                circuit_runner_count += 1
-                print(f"Client1's circuit is running for the {circuit_runner_count} time")
                 run_circuit_locally(client1, socket_client2, socket_server, epr_socket_client2)
             else:
                 raise ValueError("Unregistered instruction received")  
