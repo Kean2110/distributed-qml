@@ -5,15 +5,21 @@ from sklearn import datasets
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import log_loss, mean_squared_error
 from helper_functions import send_value, check_parity, split_data_into_batches, send_dict, send_tensor
+from scipy.optimize import minimize, OptimizeResult
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import numpy as np
 import math
+import os
 
 logger = get_netqasm_logger()
 
 
 def main(app_config=None, num_iter=1, theta_initial_0=0, theta_initial_1=0, batch_size=1, learning_rate=0.01, random_seed=42):
     server = QMLServer(num_iter, [theta_initial_0, theta_initial_1], batch_size, learning_rate, random_seed)
-    server.run()
+    #server.run(server.process_batch_gradient_free, "batch_loss_gradient_free.png")
+    server.run_gradient_free("batch_loss_gradient_free.png")
     return {
         "results": server.all_results.tolist(),
         "thetas": server.thetas
@@ -50,10 +56,10 @@ class QMLServer:
             app_name="server",
             epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
         )
-        self.run_circuit_counter = 0
+        self.batch_losses = []
     
     
-    def run(self):
+    def run(self, batch_function, file_name):
         with self.server:
             # send parameters to the clients
             send_dict(self.socket_client1, self.params)
@@ -66,19 +72,21 @@ class QMLServer:
                 iter_results = np.array([])
                 # process all batches except the last one
                 for j in range(len(batches) -1):
-                    loss, gradients, batch_results = self.process_batch(batches[j], labels[j])
+                    loss, gradients, batch_results = batch_function(batches[j], labels[j])
                     print(f"Calculated loss for iteration {i+1}, batch {j+1}: {loss}")
                     # recalculate weights
                     for k in range(len(self.thetas)):
                         self.thetas[k] -= self.learning_rate * gradients[k]
                     iter_results = np.append(iter_results, batch_results)
+                    self.batch_losses.append(loss)
                     
                 # calculate last_batch seperately, because it might have a different length
                 last_batch = batches[-1]
                 last_labels = labels[-1]
                 # process the last batch
-                loss, gradients, batch_results = self.process_batch(last_batch, last_labels)
-                print(f"Calculated loss for iteration {i+1}, batch {len(batches) + 1}: {loss}")
+                loss, gradients, batch_results = batch_function(last_batch, last_labels)
+                print(f"Calculated loss for iteration {i+1}, batch {len(batches)}: {loss}")
+                self.batch_losses.append(loss)
                 # recalculate weights
                 for k in range(len(self.thetas)):
                     self.thetas[k] -= self.learning_rate * gradients[k]
@@ -89,10 +97,60 @@ class QMLServer:
                 self.all_results[i] = iter_results
         # send exit instruction to clients
         self.send_exit_instructions()
-        print(self.all_results)
-        
+        self.plot_losses(file_name)
     
-    def process_batch(self, batch, labels):
+    
+    def run_gradient_free(self, file_name):
+        iteration = 0
+        # function to optimize
+        # runs all data through our small network and computes the loss
+        # returns the loss as the opitmization goal
+        def method_to_optimize(params, samples, ys):
+            nonlocal iteration
+            print(f"Entering iteration {iteration}")
+            iter_results = np.empty(len(self.X))
+            for i in range(len(samples)):
+                iter_results[i] = self.run_circuits(samples[i], params)
+            loss = self.calculate_loss(ys, iter_results)
+            self.batch_losses.append(loss)
+            #self.all_results[iteration] = iter_results
+            print(f"Loss in iteration {iteration}: {loss}")
+            iteration += 1
+            # prediction as iter results
+            return loss
+                
+        # callback function executed after every iteration of the minimize function        
+        def iteration_callback(intermediate_params):
+            print("Intermediate thetas: ", intermediate_params)
+        
+        with self.server:
+            # send parameters to the clients
+            send_dict(self.socket_client1, self.params)
+            send_dict(self.socket_client2, self.params)
+            
+            # minimize gradient free
+            res = minimize(method_to_optimize, self.thetas, args=(self.X, self.y), options={'disp': True, 'maxiter': self.num_iter}, method="nelder-mead", callback=iteration_callback)
+            
+            self.send_exit_instructions()
+            self.plot_losses(file_name)
+
+      
+    def process_batch_gradient_free(self, batch, labels):
+        batch_results = np.empty(len(batch))
+        def method_to_optimize(params, batch, ys): 
+            for i, sample in enumerate(batch):
+                batch_results[i] = self.run_circuits(sample, params)
+            loss = self.calculate_loss(ys, batch_results)
+            return loss        
+        res = minimize(method_to_optimize, self.thetas, args=(batch, labels), method="nelder-mead", options={'disp': True, 'maxiter': 1})
+        self.thetas = res.x
+        loss = res.fun
+        gradients = np.zeros(len(self.thetas))
+        return loss, gradients, batch_results
+
+    
+    
+    def process_batch_param_shift(self, batch, labels):
         # In this way we can reuse the code for the first batches and the last smaller one
         batch_results = np.empty(len(batch))
         
@@ -127,6 +185,7 @@ class QMLServer:
         
         return loss, gradients, batch_results
         
+                
         
     def run_circuits(self, features, params):
         self.send_run_instructions()
@@ -167,6 +226,15 @@ class QMLServer:
     def send_exit_instructions(self):
         self.socket_client1.send("EXIT")
         self.socket_client2.send("EXIT")
+    
+    
+    def plot_losses(self, filename: str) -> None:
+        plt.plot(self.batch_losses)
+        plt.xlabel("batch number")
+        plt.ylabel("log loss")
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        plot_directory = os.path.join(script_dir, "plots")
+        plt.savefig(os.path.join(plot_directory, filename))
     
     
     def prepare_dataset(self):
