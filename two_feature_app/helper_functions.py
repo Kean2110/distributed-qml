@@ -3,9 +3,11 @@ from typing import List, Tuple, Union, Literal
 from netqasm.sdk import Qubit, EPRSocket
 from netqasm.sdk.toolbox import set_qubit_state
 from netqasm.sdk.classical_communication.message import StructuredMessage
+from sklearn.datasets import make_moons, load_iris
 import numpy as np
 import ast
 import random
+from sklearn.preprocessing import MinMaxScaler
 import torch
 
 def send_value(channel: Union[Socket, BroadcastChannel], value: Union[float, int]) -> None:
@@ -178,18 +180,47 @@ def remote_cnot_target(classical_socket: Socket, netqasm_conn: NetQASMConnection
     # Controller will do a controlled-Z based on the outcome to undo the entanglement
     classical_socket.send(str(epr_target_meas))
     
-        
+
+def prepare_dataset_iris():
+    """
+    Loads the Iris dataset from scikit-learn, filters out the first two features from each sample
+    and transforms it into a binary classification problem by ommitting one class.
+    Then the features are normalized fit in the range [0,1]
+    """
+    iris = load_iris()
+    # use only first two features of the iris dataset
+    X = iris.data[:,:2]
+    # filter out only zero and one classes
+    filter_mask = np.isin(iris.target, [0,1])
+    X_filtered = X[filter_mask]
+    y_filtered = iris.target[filter_mask]
+    # min max scale features to range between 0 and 1
+    scaler = MinMaxScaler(feature_range=(0,1))
+    X_scaled = scaler.fit_transform(X_filtered)
+    return X_scaled, y_filtered
+    
+    
+def prepare_dataset_moons():
+    """
+    Loads the moons dataset
+    """
+    moons = make_moons()
+    X = moons[0]
+    y = moons[1]
+    scaler = MinMaxScaler(feature_range=(0,1))
+    X_scaled = scaler.fit_transform(X)
+    return X_scaled, y
+
         
     
  
 
 if __name__ == '__main__':
-    n = 100
-    data = np.arange(n)
-    labels = np.concatenate((np.zeros(n//2, int), np.ones(n//2, int)))
-    batch_size = 16
-    print(split_data_into_batches(data, labels, batch_size, 42))
-    
+    X_moons, y_moons = prepare_dataset_moons()
+    X_iris, y_iris = prepare_dataset_iris()
+    print((X_moons), (X_iris))
+    print("#####")
+    print((y_iris), (y_moons))
     
     
     

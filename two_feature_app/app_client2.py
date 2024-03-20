@@ -8,6 +8,15 @@ from netqasm.sdk.toolbox import set_qubit_state
 logger = get_netqasm_logger()
 
 def main(app_config=None):
+    try:
+        run_client2()
+    except Exception as e:
+        print("An error occured in client 2: ", e)
+        import traceback, sys
+        traceback.print_exc()
+        sys.exit()
+
+def run_client2():
     socket_server = Socket("client2", "server", socket_id=1)
     socket_client1 = Socket("client2", "client1", socket_id=2)
     epr_socket_server = EPRSocket(remote_app_name="server", epr_socket_id=0, remote_epr_socket_id=1)
@@ -26,6 +35,7 @@ def main(app_config=None):
     batch_size = params['batch_size']
     n_batches = params['n_batches']
     n_thetas = params['n_thetas']
+    q_depth  = params['q_depth']
 
     with client2:
         while True:
@@ -33,27 +43,36 @@ def main(app_config=None):
             if instruction == "EXIT":
                 break
             elif instruction == "RUN CIRCUIT":
-                run_circuit_locally(client2, socket_client1, socket_server, epr_socket_client1)
+                run_circuit_locally(client2, socket_client1, socket_server, epr_socket_client1, q_depth)
             else:
                 raise ValueError("Unregistered instruction received")                        
 
-def run_circuit_locally(conn: NetQASMConnection, socket_client1: Socket, socket_server: Socket, epr_socket_client1: EPRSocket):
+
+def run_circuit_locally(conn: NetQASMConnection, socket_client1: Socket, socket_server: Socket, epr_socket_client1: EPRSocket, q_depth: int):
     feature = float(socket_server.recv(block=True))
     logger.info(f"Client 2 received feature: {feature}")
+    
+    # generate epr pairs
+    eprs = epr_socket_client1.recv_keep(number=q_depth)
+    logger.info(f"Client 2 received {q_depth} epr pairs")
         
-    # receive weight from server
-    theta = float(socket_server.recv(block=True))
-    logger.info(f"Client 2 received weight: {theta}")
-    
-    # receive EPR pair qubit
-    epr2 = epr_socket_client1.recv_keep()[0]
-    
     # set up local qubit
     q2 = Qubit(conn)
-    set_qubit_state(q2, feature, theta)
+    q2.rot_X(angle=feature)
     
-    # remote cnot with qubit of client1
-    remote_cnot_target(socket_client1, conn, q2, epr2)
+    # execute hidden layer
+    for i in range(q_depth):
+        logger.info(f"Client 2 entered layer: {i}")
+        
+        # receive weight from server
+        theta = float(socket_server.recv(block=True))
+        logger.info(f"Client 2 received weight: {theta}")
+        
+        # apply theta rotation
+        q2.rot_Y(angle=theta)
+    
+        # remote cnot with qubit of client1
+        remote_cnot_target(socket_client1, conn, q2, eprs[i])
     
     # measure
     result = q2.measure()
