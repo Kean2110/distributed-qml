@@ -1,9 +1,10 @@
-initial_thetas_client_1: [0.1, 0.3, 0.5, 0.7]
-initial_thetas_client_2: [1.0, 0.8, 0.6, 0.4]
-num_iter: 1
+#initial_thetas_client_1: [0.1, 0.3, 0.5, 0.7]
+#initial_thetas_client_2: [1.0, 0.8, 0.6, 0.4]
+num_iter: 10
 batch_size: 16
 learning_rate: 0.01
 random_seed: 42
 q_depth: 4
+n_shots: 1024
 # either MOONS or IRIS
 dataset_function: "MOONS"

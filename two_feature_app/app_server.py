@@ -38,13 +38,14 @@ class QMLServer:
     def __init__(self, num_iter, initial_thetas, batch_size, learning_rate, random_seed, q_depth, dataset_function) -> None:
         self.num_iter = num_iter
         # if no initial values initialize randomly
-        for initial_theta_list in initial_thetas:
+        for i, initial_theta_list in enumerate(initial_thetas):
             if initial_theta_list == None:
                 initial_theta_list = [random.random() for _ in range(q_depth)]
             # assert that there are enough parameters
             assert len(initial_theta_list) == q_depth, "Not enough initial theta values provided"
             # convert to float values
             initial_theta_list = list(map(float, initial_theta_list))
+            initial_thetas[i] = initial_theta_list
         # flatten list and convert to numpy arrays
         self.thetas = np.array(initial_thetas)
         self.batch_size = batch_size
@@ -154,20 +155,6 @@ class QMLServer:
             self.send_exit_instructions()
             self.plot_losses(file_name)
 
-      
-    def process_batch_gradient_free(self, batch, labels):
-        batch_results = np.empty(len(batch))
-        def method_to_optimize(params, batch, ys): 
-            for i, sample in enumerate(batch):
-                batch_results[i] = self.run_circuits(sample, params)
-            loss = self.calculate_loss(ys, batch_results)
-            return loss        
-        res = minimize(method_to_optimize, self.thetas, args=(batch, labels), method="nelder-mead", options={'disp': True, 'maxiter': 1})
-        self.thetas = res.x
-        loss = res.fun
-        gradients = np.zeros_like(self.thetas)
-        return loss, gradients, batch_results
-
     
     
     def process_batch_param_shift(self, batch, labels):
@@ -204,8 +191,7 @@ class QMLServer:
         loss = self.calculate_loss(labels, batch_results)
         
         return loss, gradients, batch_results
-        
-                
+                     
         
     def run_circuits(self, features, params):
         self.send_run_instructions()

@@ -1,0 +1,13 @@
+import numpy as np
+
+
+N_QUBITS = 2
+NUM_ITER = 100
+RANDOM_SEED = 0
+Q_DEPTH = 6
+# either MOONS or IRIS
+DATASET_FUNCTION = "MOONS"
+OPTIM_METHOD = "POWELL"
+N_SHOTS = 1024
+np.random.seed(RANDOM_SEED)
+INITIAL_THETAS = np.random.rand(Q_DEPTH*N_QUBITS)
