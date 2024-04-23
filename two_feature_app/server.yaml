@@ -1,5 +1,4 @@
-#initial_thetas_client_1: [0.1, 0.3, 0.5, 0.7]
-#initial_thetas_client_2: [1.0, 0.8, 0.6, 0.4]
+initial_thetas: [0, 0, 0, 0, 0, 0, 0, 0]
 num_iter: 10
 batch_size: 16
 learning_rate: 0.01
