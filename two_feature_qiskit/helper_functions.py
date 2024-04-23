@@ -1,3 +1,4 @@
+import csv
 import os
 from typing import List, Literal
 from matplotlib import pyplot as plt
@@ -25,11 +26,11 @@ def prepare_dataset_iris():
     return X_scaled, y_filtered
     
     
-def prepare_dataset_moons():
+def prepare_dataset_moons(samples=100):
     """
     Loads the moons dataset
     """
-    moons = make_moons()
+    moons = make_moons(n_samples=samples)
     X = moons[0]
     y = moons[1]
     scaler = MinMaxScaler(feature_range=(0,1))
@@ -85,9 +86,28 @@ def plot_acc_and_loss(filename: str, accuracy_scores: list[float], losses: list[
     script_dir = os.path.dirname(os.path.abspath(__file__))
     plot_directory = os.path.join(script_dir, "plots")
     plt.savefig(os.path.join(plot_directory, filename))
+    plt.close()
+    
+
+def save_losses_weights_predictions(fname: str, losses: list[float], weights: list[list[float]], predictions: list[list[Literal[0,1]]]):
+    with open(fname, 'w', newline="") as csvfile:
+        field_names = ['loss', 'weights', 'predictions']
+        writer = csv.DictWriter(csvfile, fieldnames=field_names)
+        writer.writeheader()
+        for i in range(len(losses)):
+            writer.writerow({'loss': losses[i], 'weights': weights[i], 'predictions': predictions[i]})
     
     
 if __name__ == "__main__":
+    X, y = prepare_dataset_moons()
+    client0 = X[:, 0]
+    client1 = X[:, 1]
+    for i, row in enumerate(X):
+        print(row)
+        print(client0[i])
+        print(client1[i])
+    '''
     accs = [0.1, 0.2, 0.3, 0.4, 0.5]
     losses = [20.0, 15.0, 14.3, 14.5, 14.0]
     plot_acc_and_loss(None, accs, losses)
+    '''

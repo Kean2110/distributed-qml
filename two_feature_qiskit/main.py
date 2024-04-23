@@ -1,14 +1,14 @@
 import math
 import os
+from typing import Literal
 from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
-from sklearn.metrics import log_loss, accuracy_score
-from helper_functions import check_parity
-from scipy.optimize import minimize
+from sklearn.metrics import log_loss, accuracy_score, mean_squared_error, brier_score_loss
+from helper_functions import check_parity, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_losses_weights_predictions
+from scipy.optimize import minimize, Bounds
 import numpy as np
 import random
 import config
-import helper_functions
 import time
 
 
@@ -27,7 +27,7 @@ def create_ZZ_feature_map(n_qubits, features):
     return circuit
 
 
-def create_RX_feature_map(n_qubits, features):
+def create_rot_feature_map(n_qubits, features):
     qreg = QuantumRegister(n_qubits)
     circuit = QuantumCircuit(qreg)
     for i, qubit in enumerate(qreg):
@@ -36,22 +36,24 @@ def create_RX_feature_map(n_qubits, features):
             
 
 def create_circuit(n_qubits, q_depth, features, weights):
-    assert len(weights) == n_qubits * q_depth, "Number of weights doesn't match n_qubits * q_depth"
+    assert len(weights) == n_qubits * (q_depth + 1), "Number of weights doesn't match n_qubits * q_depth + 2"
     # Two qubits
     qreg_q = QuantumRegister(n_qubits, 'q')
     creg = ClassicalRegister(n_qubits)
     circuit = QuantumCircuit(qreg_q, creg)
     
-    feature_map = create_ZZ_feature_map(n_qubits, features)
-    #feature_map = create_RX_feature_map(n_qubits, features)
+    #feature_map = create_ZZ_feature_map(n_qubits, features)
+    feature_map = create_rot_feature_map(n_qubits, features)
     circuit = circuit.compose(feature_map)
     # apply weights // entanglement layer
     for i in range(q_depth):
         for j, qbit in enumerate(qreg_q):
-            circuit.ry(weights[j * q_depth + i], qbit)
+            circuit.ry(weights[i * n_qubits + j], qbit)
         for j, qbit in enumerate(qreg_q):
             if j < len(qreg_q) - 1:
                 circuit.cx(qbit, qreg_q[j+1])
+    for j, qbit in enumerate(qreg_q):
+        circuit.ry(weights[q_depth * n_qubits + j], qbit)
             
     circuit.measure(qreg_q, creg)
     return circuit
@@ -61,14 +63,23 @@ def run_circuit(circuit: QuantumCircuit) -> list[int]:
     backend = BasicAer.get_backend('qasm_simulator')
     job = execute(circuit, backend, shots=config.N_SHOTS, memory=True)
     counts = job.result().get_counts()
-    string_qubit_values = max(counts, key=lambda key: counts[key])
-    qubit_results = []
-    for i in range(len(string_qubit_values)):
-        qubit_results.append(int(string_qubit_values[i]))
-    return qubit_results
+    return counts
+
+
+def calculate_parity(counts: dict) -> list:
+    zeros = 0
+    ones = 0
+    for measure, count in counts.items():
+        if measure.count('1') % 2 == 0:
+            zeros += count
+        else:
+            ones += count
+    output_probs = [zeros / config.N_SHOTS, ones / config.N_SHOTS]
+    return output_probs.index(max(output_probs))
 
 
 def calculate_loss(y_true, y_pred):
+    #loss = brier_score_loss(y_true, y_pred)
     loss = log_loss(y_true, y_pred, labels=[0,1])
     return loss
 
@@ -77,6 +88,8 @@ def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
     iteration = 0
     all_losses = []
     all_accs = []
+    all_predictions = []
+    all_weights = []
     # function to optimize
     # runs all data through our small network and computes the loss
     # returns the loss as the opitmization goal
@@ -86,9 +99,11 @@ def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
         iter_results = np.empty(len(X))
         for i in range(len(samples)):
             circuit = create_circuit(n_qubits, q_depth, samples[i], params)
-            qubit_results = run_circuit(circuit)
-            predicted_label = helper_functions.check_parity(qubit_results)
+            counts = run_circuit(circuit)
+            predicted_label = calculate_parity(counts)
             iter_results[i] = predicted_label
+        all_predictions.append(iter_results)
+        all_weights.append(params)
         loss = calculate_loss(ys, iter_results)
         all_losses.append(loss)
         acc = accuracy_score(ys, iter_results)
@@ -104,31 +119,33 @@ def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
         
     # minimize gradient free
     res = minimize(method_to_optimize, thetas, args=(X, y), options={'disp': True, 'maxiter': num_iter}, method=config.OPTIM_METHOD, callback=iteration_callback)
+    save_losses_weights_predictions(f"debug_results_{config.OPTIM_METHOD}.csv", losses=all_losses, weights=all_weights, predictions=all_predictions)
     return all_losses, all_accs
 
 
-def load_dataset(dataset_str):
+def load_dataset(dataset_str, n_samples):
     if dataset_str.casefold() == "iris":
-        return helper_functions.prepare_dataset_iris()
+        return prepare_dataset_iris()
     elif dataset_str.casefold() == "moons":
-        return helper_functions.prepare_dataset_moons()
+        return prepare_dataset_moons(n_samples)
     else:
         raise ValueError("No valid dataset provided in config") 
-    
+  
 
 def main():
     # load the dataset
-    X, y = load_dataset(config.DATASET_FUNCTION)
+    X, y = load_dataset(config.DATASET_FUNCTION, config.SAMPLES)
     print(np.shape(X), np.shape(y))
     losses, accs = run_gradient_free(X, y, config.INITIAL_THETAS, config.NUM_ITER, config.N_QUBITS, config.Q_DEPTH)
-    filename = "qiskit_optimizer_" + config.DATASET_FUNCTION+ "_" + config.OPTIM_METHOD + "_" + str(config.N_SHOTS) + "_" + str(config.Q_DEPTH)
-    helper_functions.plot_acc_and_loss("accs_loss_" + filename, accs, losses)
+    filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}_RX"
+    plot_acc_and_loss("accs_loss_" + filename, accs, losses)
+
 
 if __name__ == "__main__":
-    '''
-    circuit = create_circuit(2, config.Q_DEPTH, [0,0], np.random.rand(2*config.Q_DEPTH))
-    print(circuit.draw())
-    qbit_results = run_circuit(circuit)
-    print(qbit_results)
-    '''
+    #save_losses_weights_predictions([0.1, 12.5, 3], [[0.1, 0.2], [0.2, 0.1], [0.3, 0.4]], [[0,1], [1,0], [1,1]])
     main()
+    # circuit = create_circuit(2, config.Q_DEPTH, )
+    #circuit = create_circuit(2, config.Q_DEPTH, [0,0], [1,2,3,4,5,6,7,8,9,10])
+    #print(circuit.draw())
+    #qbit_results = run_circuit(circuit)
+    #print(qbit_results)
