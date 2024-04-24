@@ -1,7 +1,9 @@
 import csv
 import os
+import config
 from typing import List, Literal
 from matplotlib import pyplot as plt
+from yaml import dump
 import numpy as np
 from sklearn.datasets import load_iris, make_moons
 from sklearn.preprocessing import MinMaxScaler
@@ -96,6 +98,25 @@ def save_losses_weights_predictions(fname: str, losses: list[float], weights: li
         writer.writeheader()
         for i in range(len(losses)):
             writer.writerow({'loss': losses[i], 'weights': weights[i], 'predictions': predictions[i]})
+
+
+def save_classification_report(classification_report: dict, filename:str):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    txt_directory = os.path.join(script_dir, "classification_reports")
+    full_path = (os.path.join(txt_directory, filename + ".txt"))
+    # add configs
+    classification_report["Parameters"] = {
+        "RANDOM_SEED": config.RANDOM_SEED,
+        "DEPTH": config.Q_DEPTH,
+        "OPTIMIZER": config.OPTIM_METHOD,
+        "SHOTS": config.N_SHOTS,
+        "SAMPLES": config.SAMPLES,
+        "TEST_FRAC": config.TEST_SIZE,
+        "DATASET": config.DATASET_FUNCTION,
+        "FEATURE_MAP": config.FEATURE_MAP
+    }
+    with open(full_path, "w") as txt_file:
+        dump(classification_report, txt_file, sort_keys=False)
     
     
 if __name__ == "__main__":

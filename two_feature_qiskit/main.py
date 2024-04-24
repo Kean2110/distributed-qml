@@ -3,8 +3,9 @@ import os
 from typing import Literal
 from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
-from sklearn.metrics import log_loss, accuracy_score, mean_squared_error, brier_score_loss
-from helper_functions import check_parity, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_losses_weights_predictions
+from sklearn.metrics import log_loss, accuracy_score, mean_squared_error, brier_score_loss, classification_report
+from sklearn.model_selection import train_test_split
+from helper_functions import check_parity, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_losses_weights_predictions, save_classification_report
 from scipy.optimize import minimize, Bounds
 import numpy as np
 import random
@@ -31,12 +32,12 @@ def create_rot_feature_map(n_qubits, features):
     qreg = QuantumRegister(n_qubits)
     circuit = QuantumCircuit(qreg)
     for i, qubit in enumerate(qreg):
-        circuit.rx(features[i], qubit)
+        circuit.ry(features[i], qubit)
     return circuit
             
 
 def create_circuit(n_qubits, q_depth, features, weights):
-    assert len(weights) == n_qubits * (q_depth + 1), "Number of weights doesn't match n_qubits * q_depth + 2"
+    assert len(weights) == n_qubits * (q_depth+1), "Number of weights doesn't match n_qubits * (q_depth+1)"
     # Two qubits
     qreg_q = QuantumRegister(n_qubits, 'q')
     creg = ClassicalRegister(n_qubits)
@@ -120,7 +121,9 @@ def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
     # minimize gradient free
     res = minimize(method_to_optimize, thetas, args=(X, y), options={'disp': True, 'maxiter': num_iter}, method=config.OPTIM_METHOD, callback=iteration_callback)
     save_losses_weights_predictions(f"debug_results_{config.OPTIM_METHOD}.csv", losses=all_losses, weights=all_weights, predictions=all_predictions)
-    return all_losses, all_accs
+    # return losses and accuracies for plotting
+    # return last (optimized) weights for testing
+    return all_losses, all_accs, all_weights[-1]
 
 
 def load_dataset(dataset_str, n_samples):
@@ -130,20 +133,33 @@ def load_dataset(dataset_str, n_samples):
         return prepare_dataset_moons(n_samples)
     else:
         raise ValueError("No valid dataset provided in config") 
-  
+
+
+def test(X, y, thetas, n_qubits, q_depth):
+    test_results = np.empty(len(X))
+    for i in range(len(X)):
+        circuit = create_circuit(n_qubits, q_depth, X[i], thetas)
+        counts = run_circuit(circuit)
+        predicted_label = calculate_parity(counts)
+        test_results[i] = predicted_label
+    # generate classification report
+    dict_report = classification_report(y_true=y, y_pred=test_results, output_dict=True)
+    return dict_report
+
 
 def main():
     # load the dataset
     X, y = load_dataset(config.DATASET_FUNCTION, config.SAMPLES)
-    print(np.shape(X), np.shape(y))
-    losses, accs = run_gradient_free(X, y, config.INITIAL_THETAS, config.NUM_ITER, config.N_QUBITS, config.Q_DEPTH)
-    filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}_RX"
+    X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=config.TEST_SIZE, random_state=config.RANDOM_SEED, stratify=y)
+    losses, accs, weights = run_gradient_free(X_train, y_train, config.INITIAL_THETAS, config.NUM_ITER, config.N_QUBITS, config.Q_DEPTH)
+    filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}samples_{config.FEATURE_MAP}fmap"
     plot_acc_and_loss("accs_loss_" + filename, accs, losses)
-
+    report = test(X_test, y_test, weights, config.N_QUBITS, config.Q_DEPTH)
+    save_classification_report(report, filename)
 
 if __name__ == "__main__":
-    #save_losses_weights_predictions([0.1, 12.5, 3], [[0.1, 0.2], [0.2, 0.1], [0.3, 0.4]], [[0,1], [1,0], [1,1]])
     main()
+    
     # circuit = create_circuit(2, config.Q_DEPTH, )
     #circuit = create_circuit(2, config.Q_DEPTH, [0,0], [1,2,3,4,5,6,7,8,9,10])
     #print(circuit.draw())
