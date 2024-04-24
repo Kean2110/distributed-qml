@@ -77,11 +77,11 @@ def prepare_dataset_iris():
     return X_scaled, y_filtered
     
     
-def prepare_dataset_moons():
+def prepare_dataset_moons(n_samples: int = 100) -> Tuple[np.ndarray[float], np.ndarray[int]]:
     """
     Loads the moons dataset
     """
-    moons = make_moons()
+    moons = make_moons(n_samples=n_samples)
     X = moons[0]
     y = moons[1]
     scaler = MinMaxScaler(feature_range=(0,1))

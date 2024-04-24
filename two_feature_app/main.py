@@ -2,6 +2,7 @@ from netqasm.runtime.application import default_app_instance
 from netqasm.sdk.external import simulate_application
 from netqasm.runtime.debug import run_application
 from netqasm.logging.glob import get_netqasm_logger, set_log_level
+from utils.logger import setup_logging
 import glob
 import yaml
 import logging
@@ -34,21 +35,6 @@ def read_params_from_yaml():
     return inputs
         
 
-def setup_logging():
-    curr_dir = os.path.dirname(os.path.relpath(__file__))
-    log_path = os.path.join(curr_dir, "log/output.log")
-    logger = get_netqasm_logger()
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    fileHandler = logging.FileHandler(log_path, mode="w")
-    fileHandler.setFormatter(formatter)
-    fileHandler.setLevel(logging.DEBUG)
-    consoleHandler = logging.StreamHandler(sys.stdout)
-    consoleHandler.setFormatter(formatter)
-    consoleHandler.setLevel(logging.INFO)
-    logger.addHandler(fileHandler)
-    logger.addHandler(consoleHandler)
-
 
 def create_app():
     app_instance = default_app_instance(
@@ -68,7 +54,7 @@ def create_app():
             app_instance,
             use_app_config=False,
             post_function=None,
-            enable_logging=True
+            enable_logging=False
         )
     except:
         traceback.print_exc()
