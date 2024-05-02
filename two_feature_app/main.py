@@ -48,7 +48,6 @@ def create_app():
     app_instance.program_inputs = read_params_from_yaml()
     
     try:
-        setup_logging()
         
         simulate_application(
             app_instance,

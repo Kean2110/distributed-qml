@@ -6,6 +6,21 @@ import random
 from sklearn.preprocessing import MinMaxScaler
 import math
 
+
+def calculate_parity_from_shots(result_array_client1: list[Literal[0,1]], result_array_client2: list[Literal[0,1]]) -> Literal[0,1]:
+    n_shots = len(result_array_client1)
+    str_arr_combined_results = [str(result_array_client1[i])+str(result_array_client2[i]) for i in range(n_shots)]
+    zeros = 0
+    ones = 0
+    for single_combined_measurement in str_arr_combined_results:
+        if single_combined_measurement.count('1') % 2 == 0:
+            zeros += 1
+        else:
+            ones += 1
+    output_probs = [zeros / n_shots, ones / n_shots]
+    return output_probs.index(max(output_probs))
+
+
 def check_parity(qubits: List[int]) -> Literal[0,1]:
     """
     Checks the parity of a list of qubits.
@@ -95,11 +110,9 @@ def phase_gate(angle: float, qubit: Qubit):
  
 
 if __name__ == '__main__':
-    X_moons, y_moons = prepare_dataset_moons()
-    X_iris, y_iris = prepare_dataset_iris()
-    print((X_moons), (X_iris))
-    print("#####")
-    print((y_iris), (y_moons))
+    x0 = [0,0,1,1,1,0,0,0]
+    x1 = [1,1,1,1,1,1,1,1]
+    print(calculate_parity_from_shots(x0, x1))
     
     
     

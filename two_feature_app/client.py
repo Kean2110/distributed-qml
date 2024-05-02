@@ -7,28 +7,28 @@ from logging import Logger
 from netqasm.sdk.external import NetQASMConnection, BroadcastChannel, Socket
 from netqasm.sdk import EPRSocket, Qubit
 from utils.helper_functions import phase_gate
-from utils.socket_communication import receive_with_header, send_as_str
+from utils.socket_communication import receive_with_header, send_as_str, send_with_header
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
 
 
 class Client:
-    def __init__(self, name: str, other_client_name: str, socket_id_with_server: int, socket_id_with_other_client: int, epr_socket_id_with_server: int, ctrl_qubit: bool):
+    def __init__(self, name: str, other_client_name: str, socket_id_with_server: int, socket_id_with_other_client: int, epr_socket_id_server: int, ctrl_qubit: bool):
         self.name = name
         self.socket_server = Socket(name, "server", socket_id=socket_id_with_server)
         self.socket_client = Socket(name, other_client_name, socket_id=socket_id_with_other_client)
-        self.epr_socket_server = EPRSocket(remote_app_name="server", epr_socket_id=0, remote_epr_socket_id=epr_socket_id_with_server)
-        self.epr_socket_other_client = EPRSocket(remote_app_name=other_client_name, epr_socket_id=1, remote_epr_socket_id=1)
+        self.epr_socket_server = EPRSocket(remote_app_name="server", epr_socket_id=constants.EPR_SERVER_C1_C1, remote_epr_socket_id=epr_socket_id_server)
+        self.epr_socket_other_client = EPRSocket(remote_app_name=other_client_name, epr_socket_id=constants.EPR_C1_C2_C1, remote_epr_socket_id=constants.EPR_C1_C2_C2)
         self.ctrl_qubit = ctrl_qubit
         self.eprs_needed_for_feature_map = 0
         self.params = None
         self.features = None
         self.features_other_node = None
+        self.test_features = None
         
         self.netqasm_connection = NetQASMConnection(
             app_name=name,
             epr_sockets=[self.epr_socket_server, self.epr_socket_other_client],
-            max_qubits=10
         )
 
 
@@ -42,6 +42,8 @@ class Client:
                     break
                 elif instruction == constants.RUN_INSTRUCTION:
                     self.run_iteration()
+                elif instruction == constants.TEST_INSTRUCTION:
+                    self.run_iteration(test=True)
                 else:
                     raise ValueError("Unregistered instruction received")
     
@@ -56,26 +58,33 @@ class Client:
         
         self.features_other_node = receive_with_header(self.socket_server, constants.OTHER_FEATURES, expected_dtype=np.ndarray)
         logger.info(f"{self.name} received other nodes features")
+        
+        self.test_features = receive_with_header(self.socket_server, constants.TEST_FEATURES)
+        logger.info(f"{self.name} received test features")
     
     
-    def run_iteration(self):
+    def run_iteration(self, test=False):
+        if test:
+            features = self.test_features
+        else:
+            features = self.features
         # receive thetas from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
-        
         results = []
-        for i, feature in enumerate(self.features):
-            single_result = self.run_circuit_locally(feature, thetas, self.features_other_node[i])
+        for i, feature in enumerate(features):
+            logger.debug(f"{self.name} Running feature number {i}")
+            single_result = self.run_circuit_locally(feature, thetas)
             results.append(single_result)
         
-        send_as_str(self.socket_server, results)
+        send_with_header(self.socket_server, results, constants.RESULTS)
 
     
-    def run_circuit_locally(self, feature: float, weights: list[float], feature_other_node: float):
+    def run_circuit_locally(self, feature: float, weights: list[float]):
        
         n_shots = self.params["n_shots"]
         q_depth = self.params["q_depth"]
         
-        results_dict = {"0": 0, "1": 0}
+        results_arr = []
         
         for i in range(n_shots):
             logger.debug(f"{self.name} is executing shot number {i+1} of {n_shots} shots")
@@ -102,11 +111,12 @@ class Client:
             
             # measure
             result = q.measure()
+            
             self.netqasm_connection.flush()
+            results_arr.append(result.value)
             
-            results_dict[str(result)] += 1
             
-        return max(results_dict, key = lambda x: results_dict[x])
+        return results_arr
             
     
     def create_or_recv_epr_pairs(self, n_pairs: int):
