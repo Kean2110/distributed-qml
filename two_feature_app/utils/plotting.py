@@ -1,4 +1,6 @@
 from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 import os
 
 def plot_losses(filename: str, losses: list[float]) -> None:

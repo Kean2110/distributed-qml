@@ -1,0 +1,30 @@
+'0':
+  precision: 0.8666666666666667
+  recall: 0.91
+  f1-score: 0.8878048780487805
+  support: 100.0
+'1':
+  precision: 0.9052631578947369
+  recall: 0.86
+  f1-score: 0.8820512820512821
+  support: 100.0
+accuracy: 0.885
+macro avg:
+  precision: 0.8859649122807018
+  recall: 0.885
+  f1-score: 0.8849280800500313
+  support: 200.0
+weighted avg:
+  precision: 0.8859649122807017
+  recall: 0.885
+  f1-score: 0.8849280800500313
+  support: 200.0
+Parameters:
+  RANDOM_SEED: 42
+  DEPTH: 4
+  OPTIMIZER: cobyla
+  SHOTS: 256
+  SAMPLES: 1000
+  TEST_FRAC: 0.2
+  DATASET: MOONS
+  FEATURE_MAP: RY

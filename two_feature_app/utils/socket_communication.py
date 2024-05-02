@@ -58,7 +58,7 @@ def send_with_header(channel: Union[Socket, BroadcastChannel], payload: Union[di
     channel.send_structured(msg)
 
 
-def receive_with_header(channel: Union[Socket, BroadcastChannel], expected_header: str, expected_dtype: Union[dict, int, list, np.ndarray] = None) -> tuple[str,Union[dict, int, list]]:
+def receive_with_header(channel: Union[Socket, BroadcastChannel], expected_header: str, expected_dtype: Union[dict, int, list, np.ndarray] = None) -> Union[dict, int, list, np.ndarray]:
     msg = channel.recv_structured(block=True)
     assert msg.header == expected_header
     payload_evaluated = ast.literal_eval(msg.payload)
