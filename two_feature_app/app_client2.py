@@ -1,8 +1,9 @@
 import client
+from utils import constants
 
 def main(app_config=None):
     try:
-        client2 = client.Client("client2", "client1", 1, 2, 1, False)
+        client2 = client.Client("client2", "client1", constants.SOCKET_SERVER_C2, constants.SOCKET_C1_C2, constants.EPR_SERVER_C2_SERVER, False)
         client2.start_client()
     except Exception as e:
         print("An error occured in client 2: ", e)
