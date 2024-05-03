@@ -3,6 +3,7 @@ from typing import List, Tuple, Union, Literal
 from netqasm.sdk import Qubit, EPRSocket
 from sklearn.datasets import make_moons, load_iris
 import numpy as np
+from numpy.typing import NDArray
 import random
 from sklearn.preprocessing import MinMaxScaler
 
@@ -94,7 +95,7 @@ def prepare_dataset_iris():
     return X_scaled, y_filtered
     
     
-def prepare_dataset_moons(n_samples: int = 100) -> Tuple[np.ndarray[float], np.ndarray[int]]:
+def prepare_dataset_moons(n_samples: int = 100) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
     """
     Loads the moons dataset
     """
