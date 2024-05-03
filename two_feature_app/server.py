@@ -4,6 +4,7 @@ from netqasm.sdk import EPRSocket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
 from sklearn.model_selection import train_test_split
 from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons
+from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header
 from scipy.optimize import minimize
 import numpy as np
@@ -13,7 +14,7 @@ from utils.logger import logger
 from utils.plotting import plot_accs_and_losses
 
 class QMLServer:
-    def __init__(self, num_iter, initial_thetas, batch_size, learning_rate, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function) -> None:
+    def __init__(self, num_iter, initial_thetas, batch_size, learning_rate, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint) -> None:
         self.num_iter = num_iter
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -22,7 +23,7 @@ class QMLServer:
         self.q_depth = q_depth
         self.n_qubits = 2
         self.n_shots = n_shots
-        self.thetas = self.initialize_thetas(initial_thetas)
+        self.thetas = self.initialize_thetas(initial_thetas, start_from_checkpoint)
         
         # setup classical socket connections
         self.socket_client1 = Socket("server", "client1", socket_id=constants.SOCKET_SERVER_C1)
@@ -47,7 +48,7 @@ class QMLServer:
         self.iter_accs = []
         
         
-    def initialize_thetas(self, initial_thetas: list[Union[int, float]]) -> np.ndarray:
+    def initialize_thetas(self, initial_thetas: list[Union[int, float]], start_from_checkpoint: bool) -> np.ndarray:
         # if no initial values initialize randomly
         if initial_thetas == None:
             initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
@@ -60,20 +61,27 @@ class QMLServer:
     
     def run_gradient_free(self, file_name: str) -> dict:
         iteration = 0
+        ms = ModelSaver()
         # function to optimize
         # runs all data through our small network and computes the loss
         # returns the loss as the opitmization goal
         def method_to_optimize(params, ys):
-            nonlocal iteration
+            nonlocal iteration, ms
             logger.info(f"Entering iteration {iteration}")
+            # run the model 
             iter_results = self.run_iteration(params)
+            # calculate the loss
             loss = self.calculate_loss(ys, iter_results)
+            # save results
             self.iter_losses.append(loss)
+            # calculate accuracy
             acc = accuracy_score(ys, iter_results)
             self.iter_accs.append(acc)
             logger.info(f"Values in iteration {iteration}: Loss {loss}, Accuracy: {acc}")
+            # count up iteration
             iteration += 1
-            # prediction as iter results
+            # save params with modelsaver
+            ms.save_intermediate_results(file_name, params, loss)
             return loss
                 
         # callback function executed after every iteration of the minimize function        

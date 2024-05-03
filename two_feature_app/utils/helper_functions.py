@@ -119,6 +119,7 @@ def save_classification_report(classification_report: dict, filename:str):
     with open(full_path, "w") as txt_file:
         dump(classification_report, txt_file, sort_keys=False)
 
+
 if __name__ == '__main__':
     x0 = [0,0,1,1,1,0,0,0]
     x1 = [1,1,1,1,1,1,1,1]
