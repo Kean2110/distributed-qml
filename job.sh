@@ -1,8 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=dqml
-#SBATCH --partition=AMD
-#SBATCH --ntasks-per-node=1
-#SBATCH --get-user-env
+#SBATCH --mail-user=K.Izadi@campus.lmu.de
+#SBATCH --mail-type=FAIL
 #SBATCH --requeue
 echo Running on node $SLURMD_NODENAME at `date`
 . ~/env/bin/activate
