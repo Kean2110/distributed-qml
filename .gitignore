@@ -1,5 +1,7 @@
-# Project specific
-log/
+# Ignore logs
+*/log/*
+# except the gitkeep, to keep the dir
+!*/log/.gitkeep
 scratches/
 # Byte-compiled / optimized / DLL files
 __pycache__/
