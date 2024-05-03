@@ -81,7 +81,7 @@ class QMLServer:
             # count up iteration
             iteration += 1
             # save params with modelsaver
-            ms.save_intermediate_results(file_name, params, loss)
+            ms.save_intermediate_results(params, loss)
             return loss
                 
         # callback function executed after every iteration of the minimize function        
