@@ -71,7 +71,7 @@ class QMLServer:
             self.iter_losses.append(loss)
             acc = accuracy_score(ys, iter_results)
             self.iter_accs.append(acc)
-            logger.info(f"Loss in iteration {iteration}: {loss}")
+            logger.info(f"Values in iteration {iteration}: Loss {loss}, Accuracy: {acc}")
             iteration += 1
             # prediction as iter results
             return loss

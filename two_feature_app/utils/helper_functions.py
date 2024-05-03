@@ -1,10 +1,12 @@
+import os
 from typing import List, Tuple, Union, Literal
 from netqasm.sdk import Qubit, EPRSocket
 from sklearn.datasets import make_moons, load_iris
 import numpy as np
 import random
 from sklearn.preprocessing import MinMaxScaler
-import math
+
+from yaml import dump
 
 
 def calculate_parity_from_shots(result_array_client1: list[Literal[0,1]], result_array_client2: list[Literal[0,1]]) -> Literal[0,1]:
@@ -108,11 +110,17 @@ def phase_gate(angle: float, qubit: Qubit):
     #qubit * np.exp((1j * angle)/2)
     qubit.rot_Z(angle=angle)
  
+ 
+def save_classification_report(classification_report: dict, filename:str):
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
+    txt_directory = os.path.join(parent_dir, "classification_reports")
+    full_path = (os.path.join(txt_directory, filename + ".txt"))
+    with open(full_path, "w") as txt_file:
+        dump(classification_report, txt_file, sort_keys=False)
 
 if __name__ == '__main__':
     x0 = [0,0,1,1,1,0,0,0]
     x1 = [1,1,1,1,1,1,1,1]
-    print(calculate_parity_from_shots(x0, x1))
     
     
     

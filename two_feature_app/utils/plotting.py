@@ -7,16 +7,16 @@ def plot_losses(filename: str, losses: list[float]) -> None:
         plt.plot(losses)
         plt.xlabel("iteration")
         plt.ylabel("log loss")
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        plot_directory = os.path.join(script_dir, "plots")
+        parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
+        plot_directory = os.path.join(parent_dir, "plots")
         plt.savefig(os.path.join(plot_directory, "loss_" + filename))
     
 def plot_accs(filename: str, accuracy_scores: list[float]) -> None:
         plt.plot(accuracy_scores)
         plt.xlabel("iteration")
         plt.ylabel("accuracy score")
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        plot_directory = os.path.join(script_dir, "plots")
+        parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
+        plot_directory = os.path.join(parent_dir, "plots")
         plt.savefig(os.path.join(plot_directory, "acc_" + filename))
         
 
@@ -34,6 +34,6 @@ def plot_accs_and_losses(filename: str, accuracy_scores: list[float], losses: li
     ax2.plot(accuracy_scores, color=color_accs)
     ax2.tick_params(axis='y', labelcolor=color_accs)
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    plot_directory = os.path.join(script_dir, "plots")
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
+    plot_directory = os.path.join(parent_dir, "plots")
     plt.savefig(os.path.join(plot_directory, "acc_loss_" + filename))

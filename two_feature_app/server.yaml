@@ -5,7 +5,7 @@ batch_size: 16
 learning_rate: 0.01
 random_seed: 42
 q_depth: 4
-n_shots: 64
+n_shots: 2
 n_samples: 100
 test_size: 0.2
 # either MOONS or IRIS
