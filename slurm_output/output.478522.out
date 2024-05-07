@@ -1,0 +1,12 @@
+slurmstepd-bauxit: error: Unable to create TMPDIR [/tmp/user/31809]: Permission denied
+slurmstepd-bauxit: error: Setting TMPDIR to /tmp
+Running on node bauxit at Fr 3. Mai 18:12:21 CEST 2024
+2024-05-03 18:12:27,480 - DQML - INFO - Entering iteration 0
+2024-05-03 18:12:28,057 - DQML - INFO - client2 received params dict: {'q_depth': 4, 'n_shots': 32}
+2024-05-03 18:12:28,058 - DQML - INFO - client1 received params dict: {'q_depth': 4, 'n_shots': 32}
+2024-05-03 18:12:28,088 - DQML - INFO - client2 received own features
+2024-05-03 18:12:28,129 - DQML - INFO - client1 received own features
+2024-05-03 18:12:28,140 - DQML - INFO - client2 received other nodes features
+2024-05-03 18:12:28,151 - DQML - INFO - client1 received other nodes features
+2024-05-03 18:12:28,202 - DQML - INFO - client2 received test features
+2024-05-03 18:12:28,212 - DQML - INFO - client1 received test features
