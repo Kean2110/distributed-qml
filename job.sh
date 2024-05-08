@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name dqml
 #SBATCH -D ./
-#SBATCH -o ./two_feature_app/output//output.%A.out
+#SBATCH -o ./two_feature_app/output/%A/output.%A.out
 #SBATCH --partition All
 #SBATCH --array=[1,2,3,4]
 #SBATCH --mail-user K.Izadi@campus.lmu.de
