@@ -10,6 +10,9 @@ two_feature_app/output/*
 # Ignore configs
 two_feature_app/config/
 
+# Ignore slurm output
+slurm_output/*
+
 scratches/
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -174,3 +177,7 @@ cython_debug/
 .vscode
 *.png
 *.csv
+
+
+# Ignore checkpoint files
+*.pickle
