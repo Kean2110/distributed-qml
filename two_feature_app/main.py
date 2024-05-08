@@ -26,12 +26,12 @@ def setup_config():
         try:
             config_id = int(sys.argv[2])
             c = ConfigParser(config_path, config_id)
-        except ValueError:
+        except IndexError:
             warnings.warn("No config ID provided, using randomly generated config ID")  
             c = ConfigParser(config_path, None)
-    except ValueError:
-        warnings.warn("No config provided, using default 'server.yaml' config")
-        config_path = "server.yaml"
+    except IndexError:
+        warnings.warn("No config provided, using default 'config.yaml' config")
+        config_path = "config.yaml"
         c = ConfigParser(config_path, None)
         
 

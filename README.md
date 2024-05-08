@@ -21,7 +21,7 @@ The NetQASM App of the distributed quantum machine learning algorithm
 -app_ files - The NetQASM apps, two clients and a server
 -client.py - The Client class, instantiated by app_client1 and app_client2
 -server.py - The Server class, instantiated by app_server
--.yaml files - The configs of the project - only server.yaml is used, and only if no other config is provided, or -app is started with 'netqasm simulate'
+-config.yaml files - Default config for the project. If no configs are provided in as console args or the app is run with "netqasm simulate", this config is used
 -config/ - Contains the configs
 -utils/ - Contains util files, like for plotting, logging, parsing the config files, etc
 -output/ - The output where the runs outputs are stored, such as the log, the plots, the checkpoints, a copy of the config
@@ -45,16 +45,16 @@ The Qiskit implementation and baseline of the NetQASM implementation
 ### Run with netqasm
 
 Go to the directory of the netqasm application (cd two_feature_app) and run "netqasm simulate".
-This will use the server.yaml as a config file.
+This will use the config.yaml as a config file.
 By specifying the log-level as "--log-level=DEBUG" u can include the netqasm DEBUG logs in your run.
 The outputs of the run can be found in the folder output/$RUN_ID/, where RUN_ID is a randomly generated ID.
 
 ### Run manually (recommended)
 Navigate to the netqasm application (cd two_feature_app) and run "python main.py [$config_number] [$run_id]
-Both Run ID and Config Number can be ommitted. In that case the default server.yaml config will be used, and a run_id conforming to the UUID standard will be assigned.
+Both Run ID and Config Number can be ommitted. In that case the default config.yaml config will be used, and a run_id conforming to the UUID standard will be assigned.
 
 Before executing make sure your config, is stored in the config/ folder with the name "config[$config_number].yaml".
-An example config file can be found in the server.yaml.
+An example config file can be found in the config.yaml.
 
 The outputs of the run will be stored in outputs/[$run_id].
 
