@@ -112,9 +112,10 @@ def phase_gate(angle: float, qubit: Qubit):
     qubit.rot_Z(angle=angle)
  
  
-def save_classification_report(classification_report: dict, filename:str):
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
-    txt_directory = os.path.join(parent_dir, "classification_reports")
+def save_classification_report(filename: str, output_dir: str, classification_report: dict):
+    txt_directory = os.path.join(output_dir, "classification_reports")
+    if not os.path.exists(txt_directory):
+        os.mkdir(txt_directory)
     full_path = (os.path.join(txt_directory, filename + ".txt"))
     with open(full_path, "w") as txt_file:
         dump(classification_report, txt_file, sort_keys=False)
