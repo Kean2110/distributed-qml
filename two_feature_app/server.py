@@ -3,6 +3,7 @@ from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
 from sklearn.model_selection import train_test_split
+from utils.config_parser import ConfigParser
 from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons
 from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header
@@ -49,19 +50,26 @@ class QMLServer:
         
         
     def initialize_thetas(self, initial_thetas: list[Union[int, float]], start_from_checkpoint: bool) -> np.ndarray:
+        if start_from_checkpoint:
+            initial_thetas = self.load_checkpoint()
         # if no initial values initialize randomly
-        if initial_thetas == None:
+        elif initial_thetas == None:
             initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
         else:
             # convert to numpy float values
             initial_thetas = np.array(initial_thetas, dtype=float)
-            assert len(initial_thetas) == (self.q_depth + 1) * self.n_qubits, "Not enough initial thetas provided"
+        assert len(initial_thetas) == (self.q_depth + 1) * self.n_qubits, "Not enough initial thetas provided"
         return initial_thetas
+    
+    
+    def load_checkpoint(self):
+        # TODO load latest checkpoint from individual output dir
+        pass
        
     
-    def run_gradient_free(self, file_name: str) -> dict:
+    def run_gradient_free(self, file_name: str, output_dir: str) -> dict:
         iteration = 0
-        ms = ModelSaver()
+        ms = ModelSaver(output_dir)
         # function to optimize
         # runs all data through our small network and computes the loss
         # returns the loss as the opitmization goal
@@ -89,6 +97,8 @@ class QMLServer:
             logger.info(f"Intermediate thetas: {intermediate_params}")
             
         with self.server:
+            c = ConfigParser()
+            logger.info(c.get_config())
             # send params and features to clients
             self.send_params_and_features()
 
@@ -101,7 +111,7 @@ class QMLServer:
             # exit clients
             self.send_exit_instructions()
             
-            plot_accs_and_losses(file_name, self.iter_accs, self.iter_losses)
+            plot_accs_and_losses(file_name, output_dir, self.iter_accs, self.iter_losses)
             
             return dict_test_report
     
@@ -139,8 +149,6 @@ class QMLServer:
         send_with_header(self.socket_client1, test_features_client_1, constants.TEST_FEATURES)
         send_with_header(self.socket_client2, test_features_client_2, constants.TEST_FEATURES)
         
-        
-  
     
     def run_iteration(self, params, test=False):
         if test:

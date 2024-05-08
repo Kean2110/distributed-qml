@@ -1,15 +1,19 @@
+import os
+import shutil
 from utils.helper_functions import save_classification_report
 from utils.logger import setup_logging
+from utils.config_parser import ConfigParser
 import server
 
-def main(app_config=None, enable_netqasm_logging=False, num_iter=1, initial_thetas=None, batch_size=1, learning_rate=0.01, random_seed=42, q_depth=1, n_shots=1, n_samples=100, test_size=0.2, dataset_function="iris", start_from_checkpoint=False):
-    setup_logging(enable_netqasm_logging)
-    server_instance = server.QMLServer(num_iter, initial_thetas, batch_size, learning_rate, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint)
-    fname = f"netqasm_{server_instance.n_shots}shots_{server_instance.q_depth}qdepth_{n_samples}samples"
+def main(app_config=None):
+    config = ConfigParser(None, None)
+    output_path = setup_output_folder(f"output/{config.config_id}/", config.config_path)
+    setup_logging(config.enable_netqasm_logging, output_path)
+    server_instance = server.QMLServer(config.num_iter, config.initial_thetas, config.batch_size, config.learning_rate, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, config.start_from_checkpoint)
+    fname = f"netqasm_{server_instance.n_shots}shots_{server_instance.q_depth}qdepth_{config.n_samples}samples"
     try: 
-        report = server_instance.run_gradient_free(fname)
-        report = server_instance.test_gradient_free()
-        save_classification_report(report, fname)
+        report = server_instance.run_gradient_free(fname, output_path)
+        save_classification_report(fname, output_path, report)
     except Exception as e:
         print("An error occured in server: ", e)
         import traceback, sys
@@ -21,6 +25,15 @@ def main(app_config=None, enable_netqasm_logging=False, num_iter=1, initial_thet
         "thetas": server_instance.thetas
     }
 
+
+def setup_output_folder(folder_path, config_path):
+    # Create output folder and copy config into it
+    if os.path.exists(folder_path):
+        shutil.rmtree(folder_path)
+    os.mkdir(folder_path)
+    shutil.copy(config_path, folder_path + "config.yaml")
+    return os.path.abspath(folder_path)
+    
     
 if __name__ == "__main__":
     main()

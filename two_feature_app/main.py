@@ -1,8 +1,10 @@
+import warnings
 from netqasm.runtime.application import default_app_instance
 from netqasm.sdk.external import simulate_application
 from netqasm.runtime.debug import run_application
 from netqasm.logging.glob import get_netqasm_logger, set_log_level
 from utils.logger import setup_logging
+from utils.config_parser import ConfigParser
 import glob
 import yaml
 import logging
@@ -15,8 +17,23 @@ import app_client2
 
 """
 Entry point if we don't want to use `netqasm simulate`, e.g. for debugging
-"""
+"""   
 
+def setup_config():
+    try:
+        config_number = int(sys.argv[1])
+        config_path = f"config/config{config_number}.yaml"
+        try:
+            config_id = int(sys.argv[2])
+            c = ConfigParser(config_path, config_id)
+        except ValueError:
+            warnings.warn("No config ID provided, using randomly generated config ID")  
+            c = ConfigParser(config_path, None)
+    except ValueError:
+        warnings.warn("No config provided, using default 'server.yaml' config")
+        config_path = "server.yaml"
+        c = ConfigParser(config_path, None)
+        
 
 def read_params_from_yaml():
     # Get the directory of the current file
@@ -33,7 +50,6 @@ def read_params_from_yaml():
             instance_name, _ = os.path.splitext(file_name)
             inputs[instance_name] = data
     return inputs
-        
 
 
 def create_app():
@@ -45,9 +61,8 @@ def create_app():
         ]
     )
     
-    app_instance.program_inputs = read_params_from_yaml()
-    
     try:
+        setup_config()
         
         simulate_application(
             app_instance,

@@ -10,3 +10,4 @@ n_samples: 100
 test_size: 0.2
 # either MOONS or IRIS
 dataset_function: "MOONS"
+start_from_checkpoint: False
