@@ -5,13 +5,12 @@ import sys
 
 logger = logging.getLogger("DQML")
 
-def setup_logging(enable_netqasm_logging):
+def setup_logging(enable_netqasm_logging, output_path):
     if enable_netqasm_logging:
         logger = get_netqasm_logger()
     else:
         logger = logging.getLogger("DQML")
-    curr_dir = os.path.dirname(os.path.dirname(os.path.relpath(__file__)))
-    log_path = os.path.join(curr_dir, "log/output.log")
+    log_path = os.path.join(output_path, "output.log")
     logger.setLevel(logging.DEBUG)
     consoleFormatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     fileFormatter = logging.Formatter("%(asctime)s - %(name)s - %(filename)s - %(funcName)s - %(levelname)s - %(message)s")
