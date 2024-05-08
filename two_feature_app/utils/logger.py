@@ -10,7 +10,7 @@ def setup_logging(enable_netqasm_logging, output_path):
         logger = get_netqasm_logger()
     else:
         logger = logging.getLogger("DQML")
-    log_path = os.path.join(output_path, "output.log")
+    log_path = os.path.join(output_path, "debug.log")
     logger.setLevel(logging.DEBUG)
     consoleFormatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     fileFormatter = logging.Formatter("%(asctime)s - %(name)s - %(filename)s - %(funcName)s - %(levelname)s - %(message)s")

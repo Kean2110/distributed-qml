@@ -1,10 +1,11 @@
+import os
 from typing import Literal, Union
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
 from sklearn.model_selection import train_test_split
 from utils.config_parser import ConfigParser
-from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons
+from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint
 from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header
 from scipy.optimize import minimize
@@ -25,6 +26,7 @@ class QMLServer:
         self.n_qubits = 2
         self.n_shots = n_shots
         self.thetas = self.initialize_thetas(initial_thetas, start_from_checkpoint)
+        self.curr_dir = os.path.dirname(__file__)
         
         # setup classical socket connections
         self.socket_client1 = Socket("server", "client1", socket_id=constants.SOCKET_SERVER_C1)
@@ -51,20 +53,17 @@ class QMLServer:
         
     def initialize_thetas(self, initial_thetas: list[Union[int, float]], start_from_checkpoint: bool) -> np.ndarray:
         if start_from_checkpoint:
-            initial_thetas = self.load_checkpoint()
+            c = ConfigParser()
+            checkpoint_path = os.path.abspath(os.path.join(self.curr_dir, f"output/{c.config_id}/parameters/"))
+            initial_thetas = load_latest_checkpoint(checkpoint_path)
         # if no initial values initialize randomly
-        elif initial_thetas == None:
+        if initial_thetas == None:
             initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
         else:
             # convert to numpy float values
             initial_thetas = np.array(initial_thetas, dtype=float)
         assert len(initial_thetas) == (self.q_depth + 1) * self.n_qubits, "Not enough initial thetas provided"
         return initial_thetas
-    
-    
-    def load_checkpoint(self):
-        # TODO load latest checkpoint from individual output dir
-        pass
        
     
     def run_gradient_free(self, file_name: str, output_dir: str) -> dict:

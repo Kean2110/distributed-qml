@@ -1,4 +1,6 @@
+import glob
 import os
+import pickle
 from typing import List, Tuple, Union, Literal
 from netqasm.sdk import Qubit, EPRSocket
 from sklearn.datasets import make_moons, load_iris
@@ -6,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 import random
 from sklearn.preprocessing import MinMaxScaler
+from logger import logger
 
 from yaml import dump
 
@@ -121,9 +124,25 @@ def save_classification_report(filename: str, output_dir: str, classification_re
         dump(classification_report, txt_file, sort_keys=False)
 
 
+def load_latest_checkpoint(checkpoint_dir: str) -> list[float]:
+    # List all pickle files that are in the checkpoint dir
+    checkpoints = [f for f in glob.glob(os.path.join(checkpoint_dir, "*.pickle"))]
+    try:
+        # Get the latest checkpoint pickle file
+        latest_checkpoint = max(checkpoints, key = lambda x: os.path.getmtime(x))
+        with open(latest_checkpoint, 'rb') as file:
+            # load the data and return the params
+            data = pickle.load(file)
+            return data["params"]
+    except (ValueError, FileNotFoundError) as e:
+        logger.warning("No checkpoint found, returning None")
+        # return None if no file is found
+        return None
+
 if __name__ == '__main__':
-    x0 = [0,0,1,1,1,0,0,0]
-    x1 = [1,1,1,1,1,1,1,1]
+    dirname = os.path.dirname(__file__)
+    thetas = load_latest_checkpoint(os.path.join(dirname, "test/"))
+    print(thetas)
     
     
     

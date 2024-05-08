@@ -3,6 +3,10 @@ import yaml
 import uuid
 
 class ConfigParser:
+    """
+    Singleton class ConfigParser.
+    When being reinstantiated, it returns the current config.
+    """
     _instance = None
     num_iter = 100
     enable_netqasm_logging = False
