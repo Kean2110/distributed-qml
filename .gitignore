@@ -3,10 +3,6 @@
 # except the gitkeep, to keep the dir
 !*/log/.gitkeep
 
-# Ignore outputs, except gitkeep
-two_feature_app/output/*
-!/two_feature_app/output/.gitkeep
-
 # Ignore configs
 two_feature_app/config/*
 !/two_feature_app/config/.gitkeep
