@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Literal, Union
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket
@@ -49,6 +50,7 @@ class QMLServer:
         )
         self.iter_losses = []
         self.iter_accs = []
+        self.iter_times = []
         
         
     def initialize_thetas(self, initial_thetas: list[Union[int, float]], start_from_checkpoint: bool) -> np.ndarray:
@@ -76,7 +78,11 @@ class QMLServer:
             nonlocal iteration, ms
             logger.info(f"Entering iteration {iteration}")
             # run the model 
+            start_time = time.time()
             iter_results = self.run_iteration(params)
+            end_time = time.time()
+            diff_time_mins = (end_time - start_time)/60.0
+            self.iter_times.append(diff_time_mins)
             # calculate the loss
             loss = self.calculate_loss(ys, iter_results)
             # save results
@@ -84,7 +90,7 @@ class QMLServer:
             # calculate accuracy
             acc = accuracy_score(ys, iter_results)
             self.iter_accs.append(acc)
-            logger.info(f"Values in iteration {iteration}: Loss {loss}, Accuracy: {acc}")
+            logger.info(f"Values in iteration {iteration}: Loss {loss}, Accuracy: {acc}, Elpased Minutes: {diff_time_mins}")
             # count up iteration
             iteration += 1
             # save params with modelsaver
