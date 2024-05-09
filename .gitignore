@@ -7,6 +7,10 @@
 two_feature_app/config/*
 !/two_feature_app/config/.gitkeep
 
+# Ignore outputs
+two_feature_app/output/*
+!/two_feature_app/output/.gitkeep
+
 # Ignore slurm output
 slurm_output/*
 
