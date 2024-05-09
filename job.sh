@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name dqml
 #SBATCH -D ./
-#SBATCH -o ./two_feature_app/output/%A/output.%A.out
+#SBATCH -o ./slurm_output/output.%A_%a.out
 #SBATCH --partition All
-#SBATCH --array=[1,2,3,4]
+#SBATCH --array=[1,2,3,4,5]
 #SBATCH --mail-user K.Izadi@campus.lmu.de
 #SBATCH --mail-type ALL
 echo Running on node $SLURMD_NODENAME at `date`
