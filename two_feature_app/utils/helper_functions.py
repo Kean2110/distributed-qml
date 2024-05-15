@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 import random
 from sklearn.preprocessing import MinMaxScaler
-from logger import logger
+from utils.logger import logger
 
 from yaml import dump
 

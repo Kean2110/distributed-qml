@@ -8,10 +8,8 @@ class ConfigParser:
     When being reinstantiated, it returns the current config.
     """
     _instance = None
-    num_iter = 100
+    max_iter = 100
     enable_netqasm_logging = False
-    batch_size = 16
-    learning_rate = 0.01
     random_seed = 42
     q_depth = 4
     n_shots = 32

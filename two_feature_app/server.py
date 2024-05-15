@@ -17,10 +17,8 @@ from utils.logger import logger
 from utils.plotting import plot_accs_and_losses
 
 class QMLServer:
-    def __init__(self, num_iter, initial_thetas, batch_size, learning_rate, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint) -> None:
-        self.num_iter = num_iter
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
+    def __init__(self, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint) -> None:
+        self.max_iter = max_iter
         self.random_seed = random_seed
         self.parameter_shift_delta = 0.001
         self.q_depth = q_depth
@@ -108,7 +106,7 @@ class QMLServer:
             self.send_params_and_features()
 
             # minimize gradient free
-            res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.num_iter}, method="COBYLA", callback=iteration_callback)
+            res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", callback=iteration_callback)
             
             # test run
             dict_test_report = self.test_gradient_free()

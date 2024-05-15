@@ -9,7 +9,7 @@ def main(app_config=None):
     config = ConfigParser(None, None)
     output_path = setup_output_folder(f"output/{config.config_id}/", config.config_path)
     setup_logging(config.enable_netqasm_logging, output_path)
-    server_instance = server.QMLServer(config.num_iter, config.initial_thetas, config.batch_size, config.learning_rate, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, config.start_from_checkpoint)
+    server_instance = server.QMLServer(config.max_iter, config.initial_thetas, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, config.start_from_checkpoint)
     fname = f"netqasm_{server_instance.n_shots}shots_{server_instance.q_depth}qdepth_{config.n_samples}samples"
     try: 
         report = server_instance.run_gradient_free(fname, output_path)
