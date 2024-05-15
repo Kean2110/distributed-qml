@@ -54,7 +54,7 @@ class QMLServer:
     def initialize_thetas(self, initial_thetas: list[Union[int, float]], start_from_checkpoint: bool) -> np.ndarray:
         if start_from_checkpoint:
             c = ConfigParser()
-            checkpoint_path = os.path.abspath(os.path.join(self.curr_dir, f"output/{c.config_id}/parameters/"))
+            checkpoint_path = os.path.abspath(os.path.join(self.curr_dir, f"output/{c.config_id}/checkpoints/"))
             initial_thetas = load_latest_checkpoint(checkpoint_path)
         # if no initial values initialize randomly
         if initial_thetas == None:

@@ -13,7 +13,7 @@ class ModelSaver:
         self.best_params = None
         self.file_name = f"checkpoint_{time.strftime('%Y%m%dT%H%M%S')}.pickle"
         # set and create output dir
-        self.output_dir = os.path.join(output_dir, "parameters/")
+        self.output_dir = os.path.join(output_dir, "checkpoints/")
         os.mkdir(self.output_dir)
     
     def save_intermediate_results(self, params, loss):
