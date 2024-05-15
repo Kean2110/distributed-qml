@@ -1,6 +1,7 @@
 import glob
 import os
 import pickle
+import shutil
 from typing import List, Tuple, Union, Literal
 from netqasm.sdk import Qubit, EPRSocket
 from sklearn.datasets import make_moons, load_iris
@@ -11,6 +12,17 @@ from sklearn.preprocessing import MinMaxScaler
 from utils.logger import logger
 
 from yaml import dump
+
+
+def remove_folder_except(folder_path: str, except_paths: list[str]):
+    for item in os.listdir(folder_path):
+        if item not in except_paths:
+            item_path = os.path.join(folder_path, item)
+            if os.path.isfile(item_path):
+                os.remove(item_path)
+            elif os.path.isdir(item_path):
+                shutil.rmtree(item_path)
+                
 
 
 def calculate_parity_from_shots(result_array_client1: list[Literal[0,1]], result_array_client2: list[Literal[0,1]]) -> Literal[0,1]:

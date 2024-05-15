@@ -13,8 +13,9 @@ class ModelSaver:
         self.best_params = None
         self.file_name = f"checkpoint_{time.strftime('%Y%m%dT%H%M%S')}.pickle"
         # set and create output dir
-        self.output_dir = os.path.join(output_dir, "checkpoints/")
-        os.mkdir(self.output_dir)
+        self.checkpoint_dir = os.path.join(output_dir, "checkpoints")
+        if not os.path.exists(self.checkpoint_dir):
+            os.mkdir(self.checkpoint_dir)
     
     def save_intermediate_results(self, params, loss):
         if self.best_loss is not None and loss >= self.best_loss:
@@ -22,7 +23,7 @@ class ModelSaver:
         else:
             self.best_loss = loss
             self.best_params = params
-            file_location = os.path.join(self.output_dir, self.file_name)
+            file_location = os.path.join(self.checkpoint_dir, self.file_name)
             intermediate_dict = {'params': self.best_params, 'loss': self.best_loss}
             logger.info("Saving intermediate results to pickle file.")
             with open(file_location, 'wb') as file:   

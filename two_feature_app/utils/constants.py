@@ -1,3 +1,5 @@
+import os
+
 # Instructions
 EXIT_INSTRUCTION = "EXIT"
 RUN_INSTRUCTION = "RUN ITERATION"
@@ -24,3 +26,5 @@ EPR_C1_C2_C2 = 1
 SOCKET_SERVER_C1 = 0
 SOCKET_SERVER_C2 = 1
 SOCKET_C1_C2 = 2
+
+PROJECT_BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))

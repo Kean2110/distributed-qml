@@ -17,15 +17,15 @@ from utils.logger import logger
 from utils.plotting import plot_accs_and_losses
 
 class QMLServer:
-    def __init__(self, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint) -> None:
+    def __init__(self, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path) -> None:
         self.max_iter = max_iter
         self.random_seed = random_seed
         self.parameter_shift_delta = 0.001
         self.q_depth = q_depth
         self.n_qubits = 2
         self.n_shots = n_shots
+        self.output_path = output_path
         self.thetas = self.initialize_thetas(initial_thetas, start_from_checkpoint)
-        self.curr_dir = os.path.dirname(__file__)
         
         # setup classical socket connections
         self.socket_client1 = Socket("server", "client1", socket_id=constants.SOCKET_SERVER_C1)
@@ -54,10 +54,10 @@ class QMLServer:
     def initialize_thetas(self, initial_thetas: list[Union[int, float]], start_from_checkpoint: bool) -> np.ndarray:
         if start_from_checkpoint:
             c = ConfigParser()
-            checkpoint_path = os.path.abspath(os.path.join(self.curr_dir, f"output/{c.config_id}/checkpoints/"))
+            checkpoint_path = os.path.join(self.output_path, "checkpoints")
             initial_thetas = load_latest_checkpoint(checkpoint_path)
         # if no initial values initialize randomly
-        if initial_thetas == None:
+        if initial_thetas is None:
             initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
         else:
             # convert to numpy float values
@@ -66,9 +66,9 @@ class QMLServer:
         return initial_thetas
        
     
-    def run_gradient_free(self, file_name: str, output_dir: str) -> dict:
+    def run_gradient_free(self, file_name: str) -> dict:
         iteration = 0
-        ms = ModelSaver(output_dir)
+        ms = ModelSaver(self.output_path)
         # function to optimize
         # runs all data through our small network and computes the loss
         # returns the loss as the opitmization goal

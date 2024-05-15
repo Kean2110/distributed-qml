@@ -1,18 +1,20 @@
 import os
 import shutil
-from utils.helper_functions import save_classification_report
+import utils.constants as constants
+from utils.helper_functions import save_classification_report, remove_folder_except
 from utils.logger import setup_logging
 from utils.config_parser import ConfigParser
 import server
 
 def main(app_config=None):
     config = ConfigParser(None, None)
-    output_path = setup_output_folder(f"output/{config.config_id}/", config.config_path)
+    output_path = os.path.join(constants.PROJECT_BASE_PATH, "output", f"{config.config_id}")
+    setup_output_folder(output_path, config.config_path)
     setup_logging(config.enable_netqasm_logging, output_path)
-    server_instance = server.QMLServer(config.max_iter, config.initial_thetas, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, config.start_from_checkpoint)
+    server_instance = server.QMLServer(config.max_iter, config.initial_thetas, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, config.start_from_checkpoint, output_path)
     fname = f"netqasm_{server_instance.n_shots}shots_{server_instance.q_depth}qdepth_{config.n_samples}samples"
-    try: 
-        report = server_instance.run_gradient_free(fname, output_path)
+    try:
+        report = server_instance.run_gradient_free(fname)
         save_classification_report(fname, output_path, report)
     except Exception as e:
         print("An error occured in server: ", e)
@@ -26,13 +28,15 @@ def main(app_config=None):
     }
 
 
-def setup_output_folder(folder_path, config_path):
+def setup_output_folder(output_folder_path: str, config_path: str):
     # Create output folder and copy config into it
-    if os.path.exists(folder_path):
-        shutil.rmtree(folder_path)
-    os.mkdir(folder_path)
-    shutil.copy(config_path, folder_path + "config.yaml")
-    return os.path.abspath(folder_path)
+    # if output folder exists
+    if os.path.exists(output_folder_path):
+        # delete all contents except checkpoints folder
+        remove_folder_except(output_folder_path, ["checkpoints"])
+    else:
+        os.mkdir(output_folder_path)
+    shutil.copy(config_path, output_folder_path + "config.yaml")
     
     
 if __name__ == "__main__":
