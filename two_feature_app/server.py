@@ -37,11 +37,7 @@ class QMLServer:
         
         X, y = self.prepare_dataset(dataset_function, n_samples)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
-        
-        self.params = {
-            'q_depth': q_depth,
-            'n_shots': n_shots
-        }
+
         self.server = NetQASMConnection(
             app_name="server",
             epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
@@ -103,7 +99,7 @@ class QMLServer:
             c = ConfigParser()
             logger.info(c.get_config())
             # send params and features to clients
-            self.send_params_and_features()
+            self.send_features()
 
             # minimize gradient free
             res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", callback=iteration_callback)
@@ -114,7 +110,7 @@ class QMLServer:
             # exit clients
             self.send_exit_instructions()
             
-            plot_accs_and_losses(file_name, output_dir, self.iter_accs, self.iter_losses)
+            plot_accs_and_losses(file_name, self.output_path, self.iter_accs, self.iter_losses)
             
             return dict_test_report
     
@@ -127,11 +123,7 @@ class QMLServer:
         return dict_report
     
   
-    def send_params_and_features(self):
-        # send parameters to the clients
-        send_with_header(self.socket_client1, self.params, constants.PARAMS)
-        send_with_header(self.socket_client2, self.params, constants.PARAMS)
-        
+    def send_features(self):
         features_client_1 = self.X_train[:, 0]
         features_client_2 = self.X_train[:, 1]
         

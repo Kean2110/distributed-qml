@@ -72,6 +72,7 @@ def create_app():
         )
     except:
         traceback.print_exc()
+        sys.exit(1)
     
 if __name__ == "__main__":
     create_app()

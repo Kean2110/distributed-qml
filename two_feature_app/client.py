@@ -6,14 +6,15 @@ import logging
 from logging import Logger
 from netqasm.sdk.external import NetQASMConnection, BroadcastChannel, Socket
 from netqasm.sdk import EPRSocket, Qubit
-from utils.helper_functions import phase_gate
+from utils.helper_functions import phase_gate, timer
 from utils.socket_communication import receive_with_header, send_as_str, send_with_header
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
+from utils.config_parser import ConfigParser
 
 
 class Client:
-    def __init__(self, name: str, other_client_name: str, socket_id_with_server: int, socket_id_with_other_client: int, epr_socket_id_server: int, ctrl_qubit: bool):
+    def __init__(self, name: str, other_client_name: str, socket_id_with_server: int, socket_id_with_other_client: int, epr_socket_id_server: int, ctrl_qubit: bool, n_shots: int, q_depth: int):
         self.name = name
         self.socket_server = Socket(name, "server", socket_id=socket_id_with_server)
         self.socket_client = Socket(name, other_client_name, socket_id=socket_id_with_other_client)
@@ -21,15 +22,17 @@ class Client:
         self.epr_socket_other_client = EPRSocket(remote_app_name=other_client_name, epr_socket_id=constants.EPR_C1_C2_C1, remote_epr_socket_id=constants.EPR_C1_C2_C2)
         self.ctrl_qubit = ctrl_qubit
         self.eprs_needed_for_feature_map = 0
-        self.params = None
         self.features = None
         self.features_other_node = None
         self.test_features = None
+        self.n_shots = n_shots
+        self.q_depth = q_depth
         
         self.netqasm_connection = NetQASMConnection(
             app_name=name,
             epr_sockets=[self.epr_socket_server, self.epr_socket_other_client],
         )
+
 
 
     def start_client(self):
@@ -49,10 +52,6 @@ class Client:
     
 
     def receive_starting_values_from_server(self):
-        # receive number of iters
-        self.params = receive_with_header(self.socket_server, constants.PARAMS)
-        logger.info(f"{self.name} received params dict: {self.params}")
-        
         self.features = receive_with_header(self.socket_server, constants.OWN_FEATURES, expected_dtype=np.ndarray)
         logger.info(f"{self.name} received own features")
         
@@ -79,17 +78,15 @@ class Client:
         send_with_header(self.socket_server, results, constants.RESULTS)
 
     
+    #@timer
     def run_circuit_locally(self, feature: float, weights: list[float]):
-       
-        n_shots = self.params["n_shots"]
-        q_depth = self.params["q_depth"]
         
         results_arr = []
         
-        for i in range(n_shots):
-            logger.debug(f"{self.name} is executing shot number {i+1} of {n_shots} shots")
+        for i in range(self.n_shots):
+            logger.debug(f"{self.name} is executing shot number {i+1} of {self.n_shots} shots")
             
-            eprs = self.create_or_recv_epr_pairs(q_depth + self.eprs_needed_for_feature_map)
+            eprs = self.create_or_recv_epr_pairs(self.q_depth + self.eprs_needed_for_feature_map)
             
             q = Qubit(self.netqasm_connection)
             
@@ -98,7 +95,7 @@ class Client:
             eprs = eprs[self.eprs_needed_for_feature_map:]
             
             # execute hidden layer
-            for j in range(q_depth):
+            for j in range(self.q_depth):
                 logger.debug(f"{self.name} entered layer: {j+1}")
                 
                 # apply theta rotation
@@ -119,6 +116,7 @@ class Client:
         return results_arr
             
     
+    #@timer
     def create_or_recv_epr_pairs(self, n_pairs: int):
         if self.ctrl_qubit:
             # create epr pairs
