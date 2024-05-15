@@ -34,6 +34,7 @@ def plot_accs_and_losses(filename: str, output_dir: str, accuracy_scores: list[f
     ax2.set_ylabel('accuracy score', color=color_accs)  # we already handled the x-label with ax1
     ax2.plot(accuracy_scores, color=color_accs)
     ax2.tick_params(axis='y', labelcolor=color_accs)
+    fig.suptitle(filename)
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     plot_directory = os.path.join(output_dir, "plots")
     if not os.path.exists(plot_directory):
