@@ -36,7 +36,7 @@ def setup_output_folder(output_folder_path: str, config_path: str):
         remove_folder_except(output_folder_path, ["checkpoints"])
     else:
         os.mkdir(output_folder_path)
-    shutil.copy(config_path, output_folder_path + "config.yaml")
+    shutil.copy(config_path, os.path.join(output_folder_path, "config.yaml"))
     
     
 if __name__ == "__main__":
