@@ -65,7 +65,7 @@ def remote_cnot_control(classical_socket: Socket, control_qubit: Qubit, epr_qubi
         conn.flush()
 
 
-@timer
+#@timer
 def remote_cnot_target(classical_socket: Socket, target_qubit: Qubit, epr_qubit: Qubit):
 
     # receive measurement result from EPR pair from controller
@@ -77,10 +77,6 @@ def remote_cnot_target(classical_socket: Socket, target_qubit: Qubit, epr_qubit:
 
     # apply CNOT between EPR Qubit and target qubit
     epr_qubit.cnot(target_qubit)
-    epr_qubit.H()
-    epr_qubit.measure()
-    conn = epr_qubit.connection
-    conn.flush()
 
     # apply H gate to epr target qubit and measure it and send it to controller
     epr_qubit.H()
@@ -91,4 +87,4 @@ def remote_cnot_target(classical_socket: Socket, target_qubit: Qubit, epr_qubit:
     conn.flush()
 
     # Controller will do a controlled-Z based on the outcome to undo the entanglement
-    #classical_socket.send(str(epr_target_meas))
+    classical_socket.send(str(epr_target_meas))
