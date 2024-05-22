@@ -4,6 +4,7 @@ import utils.constants as constants
 from utils.helper_functions import save_classification_report, remove_folder_except
 from utils.logger import setup_logging
 from utils.config_parser import ConfigParser
+from utils.timer import global_timer
 import server
 
 def main(app_config=None):
@@ -15,6 +16,9 @@ def main(app_config=None):
     fname = f"netqasm_{server_instance.n_shots}shots_{server_instance.q_depth}qdepth_{config.n_samples}samples"
     try:
         report = server_instance.run_gradient_free(fname)
+        global_timer.calculate_averages()
+        report["execution_times"] = global_timer.get_execution_times()
+        report["execution_avgs"] = global_timer.get_execution_averages()
         save_classification_report(fname, output_path, report)
     except Exception as e:
         print("An error occured in server: ", e)

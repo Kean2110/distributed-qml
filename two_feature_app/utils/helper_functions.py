@@ -153,18 +153,6 @@ def load_latest_checkpoint(checkpoint_dir: str) -> list[float]:
         # return None if no file is found
         return None
     
-    
-def timer(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        value = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        run_time = end_time - start_time
-        print("Finished {} in {} secs".format(repr(func.__name__), round(run_time, 3)))
-        return value
-
-    return wrapper
 
 if __name__ == '__main__':
     dirname = os.path.dirname(__file__)

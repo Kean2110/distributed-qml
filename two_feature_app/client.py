@@ -6,7 +6,7 @@ import logging
 from logging import Logger
 from netqasm.sdk.external import NetQASMConnection, BroadcastChannel, Socket
 from netqasm.sdk import EPRSocket, Qubit
-from utils.helper_functions import phase_gate, timer
+from utils.helper_functions import phase_gate
 from utils.socket_communication import receive_with_header, send_as_str, send_with_header
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
@@ -116,7 +116,6 @@ class Client:
         return results_arr
             
     
-    #@timer
     def create_or_recv_epr_pairs(self, n_pairs: int):
         if self.ctrl_qubit:
             # create epr pairs

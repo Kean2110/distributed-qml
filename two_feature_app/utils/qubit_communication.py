@@ -2,7 +2,7 @@ from netqasm.sdk import Qubit
 from netqasm.sdk.classical_communication.message import StructuredMessage
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk.toolbox import set_qubit_state
-from utils.helper_functions import timer
+from utils.timer import global_timer
 from utils.logger import logger
 
 
@@ -42,7 +42,7 @@ def teleport_qubit(epr_socket, classical_socket, netqasm_connection, feature, th
     classical_socket.send_structured(StructuredMessage("Corrections", (m1,m2)))
 
 
-#@timer
+@global_timer.timer
 def remote_cnot_control(classical_socket: Socket, control_qubit: Qubit, epr_qubit: Qubit):
     conn = epr_qubit.connection
     # CNOT between ctrl and epr
@@ -65,7 +65,7 @@ def remote_cnot_control(classical_socket: Socket, control_qubit: Qubit, epr_qubi
         conn.flush()
 
 
-#@timer
+@global_timer.timer
 def remote_cnot_target(classical_socket: Socket, target_qubit: Qubit, epr_qubit: Qubit):
 
     # receive measurement result from EPR pair from controller
