@@ -21,7 +21,6 @@ class Timer:
             value = func(*args, **kwargs)
             end_time = time.perf_counter()
             run_time = end_time - start_time
-            print("Finished {} in {} secs".format(repr(func.__name__), round(run_time, 3)))
             self.execution_times[func_name].append(run_time)
             return value
 
