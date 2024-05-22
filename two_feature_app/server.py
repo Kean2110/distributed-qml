@@ -25,6 +25,7 @@ class QMLServer:
         self.n_qubits = 2
         self.n_shots = n_shots
         self.output_path = output_path
+        self.start_iteration = 0
         self.thetas = self.initialize_thetas(initial_thetas, start_from_checkpoint)
         
         # setup classical socket connections
@@ -51,7 +52,8 @@ class QMLServer:
         if start_from_checkpoint:
             c = ConfigParser()
             checkpoint_path = os.path.join(self.output_path, "checkpoints")
-            initial_thetas = load_latest_checkpoint(checkpoint_path)
+            initial_thetas, self.start_iteration = load_latest_checkpoint(checkpoint_path)
+            self.max_iter -= self.start_iteration
         # if no initial values initialize randomly
         if initial_thetas is None:
             initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
@@ -63,7 +65,7 @@ class QMLServer:
        
     
     def run_gradient_free(self, file_name: str) -> dict:
-        iteration = 0
+        iteration = self.start_iteration
         ms = ModelSaver(self.output_path)
         # function to optimize
         # runs all data through our small network and computes the loss
@@ -88,7 +90,7 @@ class QMLServer:
             # count up iteration
             iteration += 1
             # save params with modelsaver
-            ms.save_intermediate_results(params, loss)
+            ms.save_intermediate_results(params, loss, iteration)
             return loss
                 
         # callback function executed after every iteration of the minimize function        

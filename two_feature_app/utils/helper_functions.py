@@ -145,13 +145,14 @@ def load_latest_checkpoint(checkpoint_dir: str) -> list[float]:
         # Get the latest checkpoint pickle file
         latest_checkpoint = max(checkpoints, key = lambda x: os.path.getmtime(x))
         with open(latest_checkpoint, 'rb') as file:
-            # load the data and return the params
+            # load the data and return the params and the last iteration
             data = pickle.load(file)
-            return data["params"]
+            logger.info("Loaded params and iteration number from checkpoint")
+            return data["params"], data["iter"]
     except (ValueError, FileNotFoundError) as e:
         logger.warning("No checkpoint found, returning None")
-        # return None if no file is found
-        return None
+        # return None and 0 if no file is found
+        return None, 0
     
 
 if __name__ == '__main__':
