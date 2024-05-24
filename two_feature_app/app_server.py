@@ -1,7 +1,7 @@
 import os
 import shutil
 import utils.constants as constants
-from utils.helper_functions import save_classification_report, remove_folder_except
+from utils.helper_functions import save_classification_report, remove_folder_except, load_latest_input_checkpoint
 from utils.logger import setup_logging
 from utils.config_parser import ConfigParser
 from utils.timer import global_timer
@@ -30,7 +30,23 @@ def main(app_config=None):
         "report": report,
         "thetas": server_instance.thetas
     }
+    
 
+def main_test_only():
+    # load latest checkpoint from input weights folder
+    input_checkpoint_dir = os.path.join(constants.PROJECT_BASE_PATH, "input_weights")
+    weights, config = load_latest_input_checkpoint(input_checkpoint_dir)
+    output_path = os.path.join(constants.PROJECT_BASE_PATH, "output", f"TEST_ONLY_{config['q_depth']}_{config['n_shots']}_ {config['n_samples']}_{config['dataset_function']}")
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    test_size = 0.2
+    setup_logging(False, output_path)
+    server_instance = server.QMLServer(None, weights, None, config["q_depth"], config["n_shots"], config["n_samples"], test_size, config["dataset_function"], False, output_path)
+    server_instance.send_params_and_features()
+    report = server_instance.test_gradient_free()
+    fname = f"report_trained_in_qiskit.txt"
+    save_classification_report(fname, output_path, report)
+    
 
 def setup_output_folder(output_folder_path: str, config_path: str):
     # Create output folder and copy config into it

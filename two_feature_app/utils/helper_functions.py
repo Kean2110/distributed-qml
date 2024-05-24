@@ -154,6 +154,22 @@ def load_latest_checkpoint(checkpoint_dir: str) -> list[float]:
         # return None and 0 if no file is found
         return None, 0
     
+    
+def load_latest_input_checkpoint(checkpoint_dir: str):
+    # List all pickle files that are in the checkpoint dir
+    checkpoints = [f for f in glob.glob(os.path.join(checkpoint_dir, "*.pickle"))]
+    try:
+        # Get the latest checkpoint pickle file
+        latest_checkpoint = max(checkpoints, key = lambda x: os.path.getmtime(x))
+        with open(latest_checkpoint, 'rb') as file:
+            # load the data and return the params and the last iteration
+            data = pickle.load(file)
+            logger.info("Loaded weights and config from input checkpoint")
+            return data["weights"], data["config"]
+    except (ValueError, FileNotFoundError) as e:
+        logger.warning("No checkpoint found")
+        raise FileNotFoundError(f"No files found in {checkpoint_dir}")
+    
 
 if __name__ == '__main__':
     dirname = os.path.dirname(__file__)

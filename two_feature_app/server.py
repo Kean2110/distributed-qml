@@ -101,7 +101,7 @@ class QMLServer:
             c = ConfigParser()
             logger.info(c.get_config())
             # send params and features to clients
-            self.send_features()
+            self.send_params_and_features()
 
             # minimize gradient free
             res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", callback=iteration_callback)
@@ -125,7 +125,13 @@ class QMLServer:
         return dict_report
     
   
-    def send_features(self):
+    def send_params_and_features(self):
+        params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth}
+        # send params
+        send_with_header(self.socket_client1, params_dict, constants.PARAMS)
+        send_with_header(self.socket_client2, params_dict, constants.PARAMS)
+        
+        # split up features for clients 1 and 2
         features_client_1 = self.X_train[:, 0]
         features_client_2 = self.X_train[:, 1]
         
@@ -154,8 +160,9 @@ class QMLServer:
             self.send_run_instructions()
         
         # split params array in half
-        params_client_1 = params[:len(params)//2]
-        params_client_2 = params[len(params)//2:]
+        # params look like [client1, client2, client1, client2, ....]
+        params_client_1 = params[::2]
+        params_client_2 = params[1::2]
         # Send thetas to first client
         send_with_header(self.socket_client1, params_client_1, constants.THETAS)
         # Send thetas to second client

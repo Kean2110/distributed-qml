@@ -52,17 +52,23 @@ def read_params_from_yaml():
     return inputs
 
 
-def create_app():
+def create_app(test_only=False):
+    if test_only:
+        server_main = app_server.main_test_only
+    else:
+        server_main = app_server.main
+        
     app_instance = default_app_instance(
         [
-            ("server", app_server.main),
+            ("server", server_main),
             ("client1", app_client1.main),
             ("client2", app_client2.main)
         ]
     )
     
     try:
-        setup_config()
+        if not test_only:
+            setup_config()
         
         simulate_application(
             app_instance,
@@ -74,5 +80,6 @@ def create_app():
         traceback.print_exc()
         sys.exit(1)
     
+    
 if __name__ == "__main__":
-    create_app()
+    create_app(True)
