@@ -2,7 +2,7 @@ import numpy as np
 N_QUBITS = 2
 NUM_ITER = 1000
 RANDOM_SEED = 42
-Q_DEPTH = 8
+Q_DEPTH = 4
 # either MOONS or IRIS
 DATASET_FUNCTION = "MOONS"
 OPTIM_METHOD = "cobyla"

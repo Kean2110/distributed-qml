@@ -1,5 +1,7 @@
 import csv
 import os
+import pickle
+import time
 import config
 from typing import List, Literal
 from matplotlib import pyplot as plt
@@ -117,18 +119,19 @@ def save_classification_report(classification_report: dict, filename:str):
     }
     with open(full_path, "w") as txt_file:
         dump(classification_report, txt_file, sort_keys=False)
-    
+
+
+def save_weights_config(weights, filename):
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
+    checkpoint_dir = os.path.join(curr_dir, "checkpoints")
+    if not os.path.exists(checkpoint_dir):
+        os.mkdir(checkpoint_dir)
+    file_location = os.path.join(checkpoint_dir, filename + ".pickle")
+    config_dict = {"q_depth": config.Q_DEPTH, "n_shots": config.N_SHOTS, "n_samples": config.SAMPLES, "dataset_function": config.DATASET_FUNCTION}
+    save_dict = {"weights": weights, "config": config_dict}
+    with open(file_location, 'wb') as file:
+        pickle.dump(save_dict, file)
+
     
 if __name__ == "__main__":
-    X, y = prepare_dataset_moons()
-    client0 = X[:, 0]
-    client1 = X[:, 1]
-    for i, row in enumerate(X):
-        print(row)
-        print(client0[i])
-        print(client1[i])
-    '''
-    accs = [0.1, 0.2, 0.3, 0.4, 0.5]
-    losses = [20.0, 15.0, 14.3, 14.5, 14.0]
-    plot_acc_and_loss(None, accs, losses)
-    '''
+    pass
