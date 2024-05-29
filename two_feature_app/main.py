@@ -82,4 +82,4 @@ def create_app(test_only=False):
     
     
 if __name__ == "__main__":
-    create_app(True)
+    create_app(False)

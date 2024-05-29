@@ -165,7 +165,7 @@ def load_latest_input_checkpoint(checkpoint_dir: str):
             # load the data and return the params and the last iteration
             data = pickle.load(file)
             logger.info("Loaded weights and config from input checkpoint")
-            return data["weights"], data["config"]
+            return data
     except (ValueError, FileNotFoundError) as e:
         logger.warning("No checkpoint found")
         raise FileNotFoundError(f"No files found in {checkpoint_dir}")

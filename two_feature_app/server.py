@@ -17,7 +17,7 @@ from utils.logger import logger
 from utils.plotting import plot_accs_and_losses
 
 class QMLServer:
-    def __init__(self, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path) -> None:
+    def __init__(self, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path, test_data=None) -> None:
         self.max_iter = max_iter
         self.random_seed = random_seed
         self.parameter_shift_delta = 0.001
@@ -36,9 +36,8 @@ class QMLServer:
         self.epr_socket_client1 = EPRSocket(remote_app_name="client1", epr_socket_id=constants.EPR_SERVER_C1_SERVER, remote_epr_socket_id=constants.EPR_SERVER_C1_C1)
         self.epr_socket_client2 = EPRSocket(remote_app_name="client2", epr_socket_id=constants.EPR_SERVER_C2_SERVER, remote_epr_socket_id=constants.EPR_SERVER_C2_C2)
         
-        X, y = self.prepare_dataset(dataset_function, n_samples)
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
-
+        self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, test_size, random_seed, test_data)
+        
         self.server = NetQASMConnection(
             app_name="server",
             epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
@@ -126,15 +125,17 @@ class QMLServer:
     
   
     def send_params_and_features(self):
+        # create params dict
         params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth}
         # send params
         send_with_header(self.socket_client1, params_dict, constants.PARAMS)
         send_with_header(self.socket_client2, params_dict, constants.PARAMS)
         
         # split up features for clients 1 and 2
-        features_client_1 = self.X_train[:, 0]
-        features_client_2 = self.X_train[:, 1]
-        
+        # if we have only test features, this is set to None
+        features_client_1 = self.X_train[:, 0] if self.X_train is not None else None
+        features_client_2 = self.X_train[:, 1] if self.X_train is not None else None
+            
         # send their own features to the clients
         send_with_header(self.socket_client1, features_client_1, constants.OWN_FEATURES)
         send_with_header(self.socket_client2, features_client_2, constants.OWN_FEATURES)
@@ -143,15 +144,14 @@ class QMLServer:
         send_with_header(self.socket_client1, features_client_2, constants.OTHER_FEATURES)
         send_with_header(self.socket_client2, features_client_1, constants.OTHER_FEATURES)
         
-        
-        # send the test features to the clients
+        # split up test features
         test_features_client_1 = self.X_test[:,0]
         test_features_client_2 = self.X_test[:,1]
         
         # send test features to the clients
         send_with_header(self.socket_client1, test_features_client_1, constants.TEST_FEATURES)
         send_with_header(self.socket_client2, test_features_client_2, constants.TEST_FEATURES)
-        
+
     
     def run_iteration(self, params, test=False):
         if test:
@@ -202,15 +202,24 @@ class QMLServer:
         self.socket_client2.send(constants.EXIT_INSTRUCTION)
     
 
-    def prepare_dataset(self, dataset: str, n_samples: int = 100):
+    def prepare_dataset(self, dataset_name: str, n_samples: int = 100, test_size: float = 0.2, random_seed : int = 42, test_dataset = None):
         """
-        Loads a dataset and returns it
+        Loads a dataset and returns the split into test and train data.
+        In case a test dataset is provided, only split up into data and labels
         
         :param function: The function used to generate the dataset
+        :returns X_train, X_test, y_train, y_test
+        :raises ValueError if the dataset string is inappropriate.
         """
-        if dataset.casefold() == "iris":
-            return prepare_dataset_iris()
-        elif dataset.casefold() == "moons":
-            return prepare_dataset_moons(n_samples)
+        # if we want only test data, simply split up the test dataset
+        if test_dataset:
+            return None, test_dataset["data"], None, test_dataset["labels"]
+        
+        if dataset_name.casefold() == "iris":
+            X, y = prepare_dataset_iris()
+            return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
+        elif dataset_name.casefold() == "moons":
+            X, y = prepare_dataset_moons(n_samples)
+            return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
         else:
-            raise ValueError("Inappropriate dataset provided: ", dataset)    
+            raise ValueError("Inappropriate dataset provided: ", dataset_name)    

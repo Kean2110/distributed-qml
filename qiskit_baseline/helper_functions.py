@@ -121,14 +121,14 @@ def save_classification_report(classification_report: dict, filename:str):
         dump(classification_report, txt_file, sort_keys=False)
 
 
-def save_weights_config(weights, filename):
+def save_weights_config_test_data(weights, test_data, test_labels, filename):
     curr_dir = os.path.dirname(os.path.abspath(__file__))
     checkpoint_dir = os.path.join(curr_dir, "checkpoints")
     if not os.path.exists(checkpoint_dir):
         os.mkdir(checkpoint_dir)
     file_location = os.path.join(checkpoint_dir, filename + ".pickle")
     config_dict = {"q_depth": config.Q_DEPTH, "n_shots": config.N_SHOTS, "n_samples": config.SAMPLES, "dataset_function": config.DATASET_FUNCTION}
-    save_dict = {"weights": weights, "config": config_dict}
+    save_dict = {"weights": weights, "config": config_dict, "test_data": test_data, "test_labels": test_labels}
     with open(file_location, 'wb') as file:
         pickle.dump(save_dict, file)
 

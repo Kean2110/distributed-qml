@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
 from sklearn.metrics import log_loss, accuracy_score, mean_squared_error, brier_score_loss, classification_report
 from sklearn.model_selection import train_test_split
-from helper_functions import check_parity, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_losses_weights_predictions, save_classification_report, save_weights_config
+from helper_functions import check_parity, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data
 from scipy.optimize import minimize, Bounds
 import numpy as np
 import random
@@ -155,15 +155,10 @@ def main():
     filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}samples_{config.FEATURE_MAP}fmap"
     plot_acc_and_loss("accs_loss_" + filename, accs, losses)
     # save weights
-    save_weights_config(weights, filename)
+    save_weights_config_test_data(weights, X_test, y_test, filename)
     report = test(X_test, y_test, weights, config.N_QUBITS, config.Q_DEPTH)
     save_classification_report(report, filename)
 
+
 if __name__ == "__main__":
     main()
-    
-    # circuit = create_circuit(2, config.Q_DEPTH, )
-    #circuit = create_circuit(2, config.Q_DEPTH, [0,0], [1,2,3,4,5,6,7,8,9,10])
-    #print(circuit.draw())
-    #qbit_results = run_circuit(circuit)
-    #print(qbit_results)
