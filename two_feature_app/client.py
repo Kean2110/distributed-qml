@@ -23,9 +23,12 @@ class Client:
         self.test_features = None
         self.params = None
         
+        # TODO change to either calculate max_qubits on the fly according to depth
+        # or reuse qubits of EPRPairs, so we only need 1 EPR qubit per Client
         self.netqasm_connection = NetQASMConnection(
             app_name=name,
             epr_sockets=[self.epr_socket_server, self.epr_socket_other_client],
+            max_qubits=constants.MAX_DEPTH+1+self.eprs_needed_for_feature_map
         )
 
 
@@ -80,7 +83,6 @@ class Client:
         send_with_header(self.socket_server, results, constants.RESULTS)
 
     
-    #@timer
     def run_circuit_locally(self, feature: float, weights: list[float]):
         
         n_shots = self.params["n_shots"]
