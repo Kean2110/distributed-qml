@@ -28,3 +28,14 @@ SOCKET_SERVER_C2 = 1
 SOCKET_C1_C2 = 2
 
 PROJECT_BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+# MAXIMUM Values defined
+MAX_VALUES = {
+    "q_depth": 4
+}
+
+MIN_VALUES = {
+    "q_depth": 1,
+    "n_samples": 10,
+    "n_shots": 1
+}

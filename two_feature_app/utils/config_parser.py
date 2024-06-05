@@ -2,6 +2,8 @@ import os
 import yaml
 import uuid
 
+from utils import constants
+
 class ConfigParser:
     """
     Singleton class ConfigParser.
@@ -44,7 +46,19 @@ class ConfigParser:
             self.config = yaml.safe_load(file)
             self.config_path = config_file
         for key, value in self.config.items():
+            ConfigParser.check_restrictions(key, value)
             setattr(self, key, value)
     
     def get_config(self) -> dict:
         return self.config
+    
+    @staticmethod
+    def check_restrictions(key, value):
+        if key in constants.MIN_VALUES:
+            min = constants.MIN_VALUES[key]
+            if value < min:
+                raise ValueError(f"The provided value for {key} is too small (must be at least {min})")
+        if key in constants.MAX_VALUES:
+            max = constants.MAX_VALUES[key]
+            if value > max:
+                raise ValueError(f"The provided value for {key} is too big. It must be <= {max}") 
