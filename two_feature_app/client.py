@@ -1,5 +1,7 @@
 import numpy as np
 import utils.constants as constants
+import os
+os.environ["NETQASM_SIMULATOR"] = "netsquid_single_thread"
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
 from utils.helper_functions import phase_gate
@@ -22,13 +24,13 @@ class Client:
         self.features_other_node = None
         self.test_features = None
         self.params = None
-        
+        self.max_qubits = constants.MAX_VALUES["q_depth"] + 1 + self.eprs_needed_for_feature_map
         # TODO change to either calculate max_qubits on the fly according to depth
         # or reuse qubits of EPRPairs, so we only need 1 EPR qubit per Client
         self.netqasm_connection = NetQASMConnection(
             app_name=name,
             epr_sockets=[self.epr_socket_server, self.epr_socket_other_client],
-            max_qubits=constants.MAX_DEPTH+1+self.eprs_needed_for_feature_map
+            max_qubits=self.max_qubits
         )
 
 
@@ -133,6 +135,5 @@ class Client:
             eprs = self.epr_socket_other_client.recv_keep(number=n_pairs)
             logger.debug(f"{self.name} received {n_pairs} epr qubits")
         return eprs
-
     
     

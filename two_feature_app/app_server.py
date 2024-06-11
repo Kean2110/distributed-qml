@@ -17,7 +17,6 @@ def main(app_config=None):
     try:
         report = server_instance.run_gradient_free(fname)
         global_timer.calculate_averages()
-        report["execution_times"] = global_timer.get_execution_times()
         report["execution_avgs"] = global_timer.get_execution_averages()
         save_classification_report(fname, output_path, report)
     except Exception as e:
