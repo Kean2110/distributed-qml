@@ -63,3 +63,12 @@ To run on slurm, prepare all config files you want to run in the folder config/ 
 You can make further adaptions, e.g. to get notified by mail.
 Then navigate to the directory of the job.sh and execute "sbatch job.sh".
 
+# Running using remote SSH machine
+Since executions take a lot of time to run, you can keep it running on a remote SSH server without being connected to the server all the time.
+For that u can use screen.
+1. Connect to remote server via SSH (ssh user@server)
+2. clone repo and do setup in this README
+3. execute the command "screen", this will start a new process
+4. start your run (see sections "run manually" or "run with NetQASM")
+5. press Ctrl + A and Ctrl + D to detach your session, but keep the process running
+6. return to your session anytime by pressing executing "screen -r"
