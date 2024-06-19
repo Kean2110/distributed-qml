@@ -22,18 +22,18 @@ class ConfigParser:
     dataset_function = "MOONS"
     start_from_checkpoint = False
 
-    def __new__(cls, config_path=None, config_id=None):
+    def __new__(cls, config_path=None, run_id=None):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.load_config(config_path)
-            cls._instance.set_id(config_id)
+            cls._instance.set_id(run_id)
         return cls._instance
 
-    def set_id(self, config_id):
-        if config_id:
-            self.config_id = config_id
+    def set_id(self, run_id):
+        if run_id:
+            self.run_id = run_id
         else:
-            self.config_id = str(uuid.uuid1())
+            self.run_id = str(uuid.uuid1())
 
     def load_config(self, config_path):
         # if no config path provided, load the default config

@@ -9,7 +9,7 @@ import server
 
 def main(app_config=None):
     config = ConfigParser(None, None)
-    output_path = os.path.join(constants.PROJECT_BASE_PATH, "output", f"{config.config_id}")
+    output_path = os.path.join(constants.PROJECT_BASE_PATH, "output", f"{config.run_id}")
     setup_output_folder(output_path, config.config_path)
     setup_logging(config.enable_netqasm_logging, output_path)
     server_instance = server.QMLServer(config.max_iter, config.initial_thetas, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, config.start_from_checkpoint, output_path)
