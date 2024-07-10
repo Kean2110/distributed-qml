@@ -24,8 +24,8 @@ def setup_config():
         config_number = int(sys.argv[1])
         config_path = f"config/config{config_number}.yaml"
         try:
-            run_id = int(sys.argv[2])
-            c = ConfigParser(config_path, run_id)
+            run_id_str = sys.argv[2]
+            c = ConfigParser(config_path, run_id_str)
         except IndexError:
             warnings.warn("No run ID provided, using randomly generated run ID")  
             c = ConfigParser(config_path, None)

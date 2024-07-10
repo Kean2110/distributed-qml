@@ -10,6 +10,7 @@ from utils.helper_functions import calculate_parity_from_shots, check_parity, pr
 from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header
 from scipy.optimize import minimize
+from utils.timer import global_timer
 import numpy as np
 import math
 import utils.constants as constants
@@ -62,7 +63,7 @@ class QMLServer:
         assert len(initial_thetas) == (self.q_depth + 1) * self.n_qubits, "Not enough initial thetas provided"
         return initial_thetas
        
-    
+    @global_timer.timer
     def run_gradient_free(self, file_name: str) -> dict:
         iteration = self.start_iteration
         ms = ModelSaver(self.output_path)
@@ -77,7 +78,6 @@ class QMLServer:
             iter_results = self.run_iteration(params)
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
-            self.iter_times.append(diff_time_mins)
             # calculate the loss
             loss = self.calculate_loss(ys, iter_results)
             # save results

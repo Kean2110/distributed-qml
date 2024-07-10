@@ -1,5 +1,6 @@
 import functools
 import time
+from utils.logger import logger
 
 import numpy as np
 
@@ -33,8 +34,23 @@ class Timer:
             self.execution_avg[key] = np.mean(value).tolist()
             
     
+    def get_execution_time(self, key):
+        try:
+            return self.execution_times[key]
+        except KeyError:
+            logger.warning(f"Cannot return execution time for key {key}")
+            return [-1.0]
+    
     def get_execution_times(self):
         return self.execution_times
+    
+    
+    def get_execution_average(self, key):
+        try:
+            return self.execution_avg[key]
+        except KeyError:
+            logger.warning(f"Cannot return execution time for key {key}")
+            return -1.0
     
     
     def get_execution_averages(self):
