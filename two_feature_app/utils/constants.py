@@ -13,6 +13,7 @@ TEST_FEATURES = "TEST FEATURES"
 PARAMS = "PARAMS"
 THETAS = "THETAS"
 RESULTS = "RESULTS"
+SYNC = "SYNC"
 
 
 # SOCKET IDs
@@ -30,11 +31,11 @@ SOCKET_C1_C2 = 2
 PROJECT_BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 # MAXIMUM Values defined
-# MAX DEPTH OF 4 RIGHT NOW BECAUSE ONLY 5 QUBITS ARE SUPPORTED!
 MAX_VALUES = {
-    "q_depth": 4
+    "q_depth": 8
 }
 
+# MINIMUM Values defined
 MIN_VALUES = {
     "q_depth": 1,
     "n_samples": 10,

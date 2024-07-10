@@ -43,10 +43,8 @@ def receive_teleported_qubit(conn, classical_socket, epr_socket):
 
 
 def remote_cnot_control(epr_socket: EPRSocket, classical_socket: Socket, netqasm_conn: NetQASMConnection, control_qubit: Qubit):
-    assert classical_socket.recv() == "ACK"
     # create EPR pair
     epr_ctrl = epr_socket.create_keep()[0]
-    
     # CNOT between ctrl and epr
     control_qubit.cnot(epr_ctrl)
     
@@ -65,8 +63,6 @@ def remote_cnot_control(epr_socket: EPRSocket, classical_socket: Socket, netqasm
         
         
 def remote_cnot_target(epr_socket: EPRSocket, classical_socket: Socket, netqasm_conn: NetQASMConnection, target_qubit: Qubit):
-    classical_socket.send("ACK")
-    
     # receive EPR qubit
     epr_target = epr_socket.recv_keep()[0]
     netqasm_conn.flush()

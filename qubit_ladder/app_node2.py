@@ -11,7 +11,7 @@ from teleport_qubit import remote_cnot_target
 
 def main(app_config=None, phi=0.0, theta=0.0):
     logger = get_netqasm_logger()
-    log_config = app_config.log_confog
+    log_config = app_config.log_config
     # Create a socket to send classical information
     socket = Socket("node2", "node1", log_config=log_config)
 
