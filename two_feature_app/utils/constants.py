@@ -32,7 +32,8 @@ PROJECT_BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), os.p
 # MAXIMUM Values defined
 # MAX DEPTH OF 4 RIGHT NOW BECAUSE ONLY 5 QUBITS ARE SUPPORTED!
 MAX_VALUES = {
-    "q_depth": 4
+    "q_depth": 8,
+    "eprs": 4
 }
 
 MIN_VALUES = {

@@ -1,4 +1,6 @@
 import warnings
+import os
+os.environ["NETQASM_SIMULATOR"] = "netsquid"
 from netqasm.runtime.application import default_app_instance
 from netqasm.sdk.external import simulate_application
 from netqasm.runtime.debug import run_application

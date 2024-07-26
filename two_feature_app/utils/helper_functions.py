@@ -10,6 +10,7 @@ from sklearn.datasets import make_moons, load_iris
 import numpy as np
 from numpy.typing import NDArray
 import random
+import math
 from sklearn.preprocessing import MinMaxScaler
 from utils.logger import logger
 
@@ -25,6 +26,14 @@ def remove_folder_except(folder_path: str, except_paths: list[str]):
             elif os.path.isdir(item_path):
                 shutil.rmtree(item_path)
                 
+
+def generate_chunks_with_max_size(max_size: int, depth: int) -> list[int]:
+    output_length = math.ceil(max_size / depth)
+    no_of_full_chunks = depth // max_size
+    output_chunks = [max_size] * no_of_full_chunks
+    if depth % max_size != 0:
+        output_chunks.append(depth % max_size)
+    return output_chunks                    
 
 
 def calculate_parity_from_shots(result_array_client1: list[Literal[0,1]], result_array_client2: list[Literal[0,1]]) -> Literal[0,1]:
@@ -172,9 +181,7 @@ def load_latest_input_checkpoint(checkpoint_dir: str):
     
 
 if __name__ == '__main__':
-    dirname = os.path.dirname(__file__)
-    thetas = load_latest_checkpoint(os.path.join(dirname, "test/"))
-    print(thetas)
+    print(generate_chunks_with_max_size(4, 5))
     
     
     

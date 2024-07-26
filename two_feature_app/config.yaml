@@ -1,11 +1,11 @@
 # initial_thetas: [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]
-max_iter: 100
+max_iter: 10
 enable_netqasm_logging: False
 random_seed: 42
-q_depth: 6
-n_shots: 16
-n_samples: 100
+q_depth: 4
+n_shots: 1
+n_samples: 10
 test_size: 0.2
 # either MOONS or IRIS
 dataset_function: "MOONS"
-start_from_checkpoint: True
+start_from_checkpoint: False

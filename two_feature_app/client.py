@@ -1,10 +1,11 @@
+import math
 import numpy as np
 import utils.constants as constants
 import os
 #os.environ["NETQASM_SIMULATOR"] = "netsquid_single_thread"
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
-from utils.helper_functions import phase_gate
+from utils.helper_functions import phase_gate, generate_chunks_with_max_size
 from utils.socket_communication import receive_with_header, send_as_str, send_with_header
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
@@ -19,18 +20,15 @@ class Client:
         self.epr_socket_server = EPRSocket(remote_app_name="server", epr_socket_id=constants.EPR_SERVER_C1_C1, remote_epr_socket_id=epr_socket_id_server)
         self.epr_socket_other_client = EPRSocket(remote_app_name=other_client_name, epr_socket_id=constants.EPR_C1_C2_C1, remote_epr_socket_id=constants.EPR_C1_C2_C2)
         self.ctrl_qubit = ctrl_qubit
-        self.eprs_needed_for_feature_map = 0
         self.features = None
         self.features_other_node = None
         self.test_features = None
         self.params = None
-        self.max_qubits = constants.MAX_VALUES["q_depth"] + 1 + self.eprs_needed_for_feature_map
-        # TODO change to either calculate max_qubits on the fly according to depth
-        # or reuse qubits of EPRPairs, so we only need 1 EPR qubit per Client
+        max_qubits = constants.MAX_VALUES["epr"] + 1
         self.netqasm_connection = NetQASMConnection(
             app_name=name,
             epr_sockets=[self.epr_socket_server, self.epr_socket_other_client],
-            max_qubits=self.max_qubits
+            max_qubits=max_qubits
         )
 
 
@@ -95,24 +93,28 @@ class Client:
         for i in range(n_shots):
             logger.debug(f"{self.name} is executing shot number {i+1} of {n_shots} shots")
             
-            eprs = self.create_or_recv_epr_pairs(q_depth + self.eprs_needed_for_feature_map)
-            
+            # create Qubit and apply future map
             q = Qubit(self.netqasm_connection)
-            
             ry_feature_map(q, feature)
             
-            eprs = eprs[self.eprs_needed_for_feature_map:]
+            # we can have max. 5 qubits active at once
+            # therefore if we want a depth > 4, we need to execute the hidden layer in multiple rounds
+            max_eprs = constants.MAX_VALUES["eprs"] # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
+            epr_chunks = generate_chunks_with_max_size(max_eprs, q_depth) # get the chunks of epr pairs. depth 10 and max_eprs 4 would yield [4,4,2]
+            for j, n_pairs in enumerate(epr_chunks):
+                eprs = self.create_or_recv_epr_pairs(n_pairs)
+                # execute hidden layer
+                for k in range(len(eprs)):
+                    logger.debug(f"{self.name} entered layer: {j * max_eprs + k + 1}")
             
-            # execute hidden layer
-            for j in range(q_depth):
-                logger.debug(f"{self.name} entered layer: {j+1}")
-                
-                # apply theta rotation
-                q.rot_Y(angle=weights[j])
-                if self.ctrl_qubit:
-                    remote_cnot_control(self.socket_client, q, eprs[j])
-                else:
-                    remote_cnot_target(self.socket_client, q, eprs[j])
+                    # apply theta rotation
+                    q.rot_Y(angle=weights[j * max_eprs + k])
+                    # apply remote CNOT between clients
+                    if self.ctrl_qubit:
+                        remote_cnot_control(self.socket_client, q, eprs[k])
+                    else:
+                        remote_cnot_target(self.socket_client, q, eprs[k])
+            # apply one more rotation in the end
             q.rot_Y(angle=weights[-1])        
             
             # measure
@@ -128,12 +130,16 @@ class Client:
     def create_or_recv_epr_pairs(self, n_pairs: int):
         if self.ctrl_qubit:
             # create epr pairs
+            assert self.socket_client.recv(block=True) == "ACK"
+            self.netqasm_connection.flush()
             eprs = self.epr_socket_other_client.create_keep(number=n_pairs)
             logger.debug(f"{self.name} generated {n_pairs} epr pairs")
+            
         else:
             # receive epr pairs
+            self.socket_client.send("ACK")
+            self.netqasm_connection.flush()
             eprs = self.epr_socket_other_client.recv_keep(number=n_pairs)
             logger.debug(f"{self.name} received {n_pairs} epr qubits")
         return eprs
-    
     
