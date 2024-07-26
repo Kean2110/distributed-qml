@@ -24,7 +24,7 @@ class Client:
         self.features_other_node = None
         self.test_features = None
         self.params = None
-        max_qubits = constants.MAX_VALUES["epr"] + 1
+        max_qubits = constants.MAX_VALUES["eprs"] + 1
         self.netqasm_connection = NetQASMConnection(
             app_name=name,
             epr_sockets=[self.epr_socket_server, self.epr_socket_other_client],
