@@ -147,21 +147,20 @@ def save_classification_report(filename: str, output_dir: str, classification_re
         dump(classification_report, txt_file, sort_keys=False)
 
 
-def load_latest_checkpoint(checkpoint_dir: str) -> list[float]:
+def load_latest_checkpoint(checkpoint_dir: str):
     # List all pickle files that are in the checkpoint dir
     checkpoints = [f for f in glob.glob(os.path.join(checkpoint_dir, "*.pickle"))]
     try:
         # Get the latest checkpoint pickle file
         latest_checkpoint = max(checkpoints, key = lambda x: os.path.getmtime(x))
         with open(latest_checkpoint, 'rb') as file:
-            # load the data and return the params and the last iteration
+            # load the data and return the params, last iteration, losses and accs
             data = pickle.load(file)
-            logger.info("Loaded params and iteration number from checkpoint")
-            return data["params"], data["iter"]
+            return data["params"], data["iter"], data["losses"], data["accs"]
     except (ValueError, FileNotFoundError, KeyError) as e:
         logger.warning("No checkpoint found, returning None")
         # return None and 0 if no file is found
-        return None, 0
+        return None, 0, [], []
     
     
 def load_latest_input_checkpoint(checkpoint_dir: str):

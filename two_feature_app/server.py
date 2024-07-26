@@ -26,8 +26,10 @@ class QMLServer:
         self.n_qubits = 2
         self.n_shots = n_shots
         self.output_path = output_path
-        self.start_iteration = 0
-        self.thetas = self.initialize_thetas(initial_thetas, start_from_checkpoint)
+        # load the params from the checkpoint
+        self.load_params_from_checkpoint(start_from_checkpoint)
+        self.thetas = initial_thetas if self.thetas is None else self.thetas # covers the case that we are first iteration in our checkpoint iter, so we return None as thetas and want to still have our initial params that we defined in the config
+        self.thetas = self.initialize_thetas(self.thetas)
         
         # setup classical socket connections
         self.socket_client1 = Socket("server", "client1", socket_id=constants.SOCKET_SERVER_C1)
@@ -43,17 +45,28 @@ class QMLServer:
             app_name="server",
             epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
         )
-        self.iter_losses = []
-        self.iter_accs = []
-        self.iter_times = []
         
+        # initialize the model saver
+        # if we didnt load losses from the checkpoint we dont have a best loss yet
+        # else it's the last loss of our losses
+        best_loss = None if not self.iter_losses else self.iter_losses[-1]
+        self.ms = ModelSaver(self.output_path, best_loss)
         
-    def initialize_thetas(self, initial_thetas: list[Union[int, float]], start_from_checkpoint: bool) -> np.ndarray:
+    
+    def load_params_from_checkpoint(self, start_from_checkpoint):
+        checkpoint_path = os.path.join(self.output_path, "checkpoints")
         if start_from_checkpoint:
-            c = ConfigParser()
-            checkpoint_path = os.path.join(self.output_path, "checkpoints")
-            initial_thetas, self.start_iteration = load_latest_checkpoint(checkpoint_path)
+            self.thetas, self.start_iteration, self.iter_losses, self.iter_accs = load_latest_checkpoint(checkpoint_path)
+            logger.info(f"Loaded params {self.thetas}, iteration no {self.start_iteration}, losses {self.iter_losses} and accs {self.iter_accs} from checkpoint")
             self.max_iter -= self.start_iteration
+        else:
+            self.start_iteration = 0
+            self.iter_losses = []
+            self.iter_accs = []
+            self.thetas = None
+    
+        
+    def initialize_thetas(self, initial_thetas: list[Union[int, float]]) -> np.ndarray:
         # if no initial values initialize randomly
         if initial_thetas is None:
             initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
@@ -66,13 +79,12 @@ class QMLServer:
     @global_timer.timer
     def run_gradient_free(self, file_name: str) -> dict:
         iteration = self.start_iteration
-        ms = ModelSaver(self.output_path)
         # function to optimize
         # runs all data through our small network and computes the loss
         # returns the loss as the opitmization goal
         def method_to_optimize(params, ys):
-            nonlocal iteration, ms
-            logger.info(f"Entering iteration {iteration}")
+            nonlocal iteration
+            logger.info(f"Entering iteration {iteration + 1} of {self.max_iter + self.start_iteration}")
             # run the model 
             start_time = time.time()
             iter_results = self.run_iteration(params)
@@ -85,16 +97,16 @@ class QMLServer:
             # calculate accuracy
             acc = accuracy_score(ys, iter_results)
             self.iter_accs.append(acc)
-            logger.info(f"Values in iteration {iteration}: Loss {loss}, Accuracy: {acc}, Elpased Minutes: {diff_time_mins}")
+            logger.info(f"Values in iteration {iteration + 1}: Loss {loss}, Accuracy: {acc}, Elpased Minutes: {diff_time_mins}")
             # count up iteration
             iteration += 1
             # save params with modelsaver
-            ms.save_intermediate_results(params, loss, iteration)
+            self.ms.save_intermediate_results(params, iteration, self.iter_losses, self.iter_accs)
             return loss
                 
         # callback function executed after every iteration of the minimize function        
         def iteration_callback(intermediate_params):
-            logger.info(f"Intermediate thetas: {intermediate_params}")
+            logger.debug(f"Intermediate thetas: {intermediate_params}")
             
         with self.server:
             c = ConfigParser()
