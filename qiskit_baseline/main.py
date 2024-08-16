@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
 from sklearn.metrics import log_loss, accuracy_score, mean_squared_error, brier_score_loss, classification_report
 from sklearn.model_selection import train_test_split
-from helper_functions import check_parity, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data
+from helper_functions import check_parity, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_circuit, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data
 from scipy.optimize import minimize, Bounds
 import numpy as np
 import random
@@ -38,7 +38,7 @@ def create_rot_feature_map(n_qubits, features):
 
 def create_circuit(n_qubits, q_depth, features, weights):
     assert len(weights) == n_qubits * (q_depth+1), "Number of weights doesn't match n_qubits * (q_depth+1)"
-    # Two qubits
+    # Specify register
     qreg_q = QuantumRegister(n_qubits, 'q')
     creg = ClassicalRegister(n_qubits)
     circuit = QuantumCircuit(qreg_q, creg)
@@ -51,7 +51,8 @@ def create_circuit(n_qubits, q_depth, features, weights):
         for j, qbit in enumerate(qreg_q):
             circuit.ry(weights[i * n_qubits + j], qbit)
         for j, qbit in enumerate(qreg_q):
-            if j < len(qreg_q) - 1:
+            if (j != 1 or i == 0 or i == q_depth - 1) and (j < len(qreg_q) - 1):
+            #if j < len(qreg_q) - 1:
                 circuit.cx(qbit, qreg_q[j+1])
     for j, qbit in enumerate(qreg_q):
         circuit.ry(weights[q_depth * n_qubits + j], qbit)
@@ -128,7 +129,7 @@ def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
 
 def load_dataset(dataset_str, n_samples):
     if dataset_str.casefold() == "iris":
-        return prepare_dataset_iris()
+        return prepare_dataset_iris(config.N_QUBITS)
     elif dataset_str.casefold() == "moons":
         return prepare_dataset_moons(n_samples)
     else:
@@ -152,13 +153,15 @@ def main():
     X, y = load_dataset(config.DATASET_FUNCTION, config.SAMPLES)
     X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=config.TEST_SIZE, random_state=config.RANDOM_SEED, stratify=y)
     losses, accs, weights = run_gradient_free(X_train, y_train, config.INITIAL_THETAS, config.NUM_ITER, config.N_QUBITS, config.Q_DEPTH)
-    filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}samples_{config.FEATURE_MAP}fmap"
+    filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}samples_{config.FEATURE_MAP}fmap_{config.N_QUBITS}qubits{config.FILENAME_ADDON}"
     plot_acc_and_loss("accs_loss_" + filename, accs, losses)
     # save weights
     save_weights_config_test_data(weights, X_test, y_test, filename)
     report = test(X_test, y_test, weights, config.N_QUBITS, config.Q_DEPTH)
     save_classification_report(report, filename)
-
+    # save circuit
+    save_circuit(create_circuit, filename)
+    
 
 if __name__ == "__main__":
     main()

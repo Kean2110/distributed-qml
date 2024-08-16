@@ -11,15 +11,18 @@ from sklearn.datasets import load_iris, make_moons
 from sklearn.preprocessing import MinMaxScaler
 
 
-def prepare_dataset_iris():
+def prepare_dataset_iris(n_features=2):
     """
     Loads the Iris dataset from scikit-learn, filters out the first two features from each sample
     and transforms it into a binary classification problem by ommitting one class.
     Then the features are normalized fit in the range [0,1]
     """
+    # assert n_features is between 2 and 4
+    if not (2 <= n_features <=4):
+        raise ValueError("Only supports between 2 and 4 features per data point")
     iris = load_iris()
     # use only first two features of the iris dataset
-    X = iris.data[:,:2]
+    X = iris.data[:,:n_features]
     # filter out only zero and one classes
     filter_mask = np.isin(iris.target, [0,1])
     X_filtered = X[filter_mask]
@@ -119,6 +122,16 @@ def save_classification_report(classification_report: dict, filename:str):
     }
     with open(full_path, "w") as txt_file:
         dump(classification_report, txt_file, sort_keys=False)
+
+
+def save_circuit(create_circuit_fun, filename):
+    circuit = create_circuit_fun(config.N_QUBITS, config.Q_DEPTH, np.ones(config.N_QUBITS), np.zeros(config.N_QUBITS * (config.Q_DEPTH + 1)))
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    circuit_dir = os.path.join(script_dir, "circuits")
+    full_path = (os.path.join(circuit_dir, filename + ".png"))
+    print("Saving circuit to PNG")
+    circuit.draw(output='mpl', filename = full_path)
+    
 
 
 def save_weights_config_test_data(weights, test_data, test_labels, filename):
