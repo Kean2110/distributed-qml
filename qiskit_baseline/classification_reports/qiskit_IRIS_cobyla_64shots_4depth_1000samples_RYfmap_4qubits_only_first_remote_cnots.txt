@@ -1,0 +1,30 @@
+'0':
+  precision: 0.9090909090909091
+  recall: 1.0
+  f1-score: 0.9523809523809523
+  support: 10.0
+'1':
+  precision: 1.0
+  recall: 0.9
+  f1-score: 0.9473684210526316
+  support: 10.0
+accuracy: 0.95
+macro avg:
+  precision: 0.9545454545454546
+  recall: 0.95
+  f1-score: 0.949874686716792
+  support: 20.0
+weighted avg:
+  precision: 0.9545454545454545
+  recall: 0.95
+  f1-score: 0.949874686716792
+  support: 20.0
+Parameters:
+  RANDOM_SEED: 42
+  DEPTH: 4
+  OPTIMIZER: cobyla
+  SHOTS: 64
+  SAMPLES: 1000
+  TEST_FRAC: 0.2
+  DATASET: IRIS
+  FEATURE_MAP: RY
