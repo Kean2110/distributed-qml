@@ -41,7 +41,7 @@ class QMLServer:
         
         self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, test_size, random_seed, test_data)
         
-        self.server = NetQASMConnection(
+        self.netqasm_connection = NetQASMConnection(
             app_name="server",
             epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
         )
@@ -108,7 +108,7 @@ class QMLServer:
         def iteration_callback(intermediate_params):
             logger.debug(f"Intermediate thetas: {intermediate_params}")
             
-        with self.server:
+        with self.netqasm_connection:
             c = ConfigParser()
             logger.info(c.get_config())
             # send params and features to clients
