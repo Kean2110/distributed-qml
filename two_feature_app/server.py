@@ -1,5 +1,7 @@
 import os
 import time
+import tracemalloc
+from memory_profiler import profile
 from typing import Literal, Union
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket
@@ -16,6 +18,7 @@ import math
 import utils.constants as constants
 from utils.logger import logger
 from utils.plotting import plot_accs_and_losses
+from netqasm.sdk.shared_memory import SharedMemoryManager
 
 class QMLServer:
     def __init__(self, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path, test_data=None) -> None:
@@ -35,16 +38,7 @@ class QMLServer:
         self.socket_client1 = Socket("server", "client1", socket_id=constants.SOCKET_SERVER_C1)
         self.socket_client2 = Socket("server", "client2", socket_id=constants.SOCKET_SERVER_C2)
         
-        # setup EPR connections
-        self.epr_socket_client1 = EPRSocket(remote_app_name="client1", epr_socket_id=constants.EPR_SERVER_C1_SERVER, remote_epr_socket_id=constants.EPR_SERVER_C1_C1)
-        self.epr_socket_client2 = EPRSocket(remote_app_name="client2", epr_socket_id=constants.EPR_SERVER_C2_SERVER, remote_epr_socket_id=constants.EPR_SERVER_C2_C2)
-        
         self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, test_size, random_seed, test_data)
-        
-        self.netqasm_connection = NetQASMConnection(
-            app_name="server",
-            epr_sockets=[self.epr_socket_client1, self.epr_socket_client2],
-        )
         
         # initialize the model saver
         # if we didnt load losses from the checkpoint we dont have a best loss yet
@@ -79,6 +73,7 @@ class QMLServer:
     @global_timer.timer
     def run_gradient_free(self, file_name: str) -> dict:
         iteration = self.start_iteration
+        
         # function to optimize
         # runs all data through our small network and computes the loss
         # returns the loss as the opitmization goal
@@ -88,6 +83,11 @@ class QMLServer:
             # run the model 
             start_time = time.time()
             iter_results = self.run_iteration(params)
+            SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics('lineno')
+            for stat in top_stats[:10]:
+                print(stat)
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
             # calculate the loss
@@ -108,24 +108,25 @@ class QMLServer:
         def iteration_callback(intermediate_params):
             logger.debug(f"Intermediate thetas: {intermediate_params}")
             
-        with self.netqasm_connection:
-            c = ConfigParser()
-            logger.info(c.get_config())
-            # send params and features to clients
-            self.send_params_and_features()
+        #with self.server:
+        c = ConfigParser()
+        logger.info(c.get_config())
+        # send params and features to clients
+        self.send_params_and_features()
 
-            # minimize gradient free
-            res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", callback=iteration_callback)
+        tracemalloc.start()
+        # minimize gradient free
+        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", callback=iteration_callback)
+        tracemalloc.stop()
+        # test run
+        dict_test_report = self.test_gradient_free()
+        
+        # exit clients
+        self.send_exit_instructions()
             
-            # test run
-            dict_test_report = self.test_gradient_free()
-            
-            # exit clients
-            self.send_exit_instructions()
-            
-            plot_accs_and_losses(file_name, self.output_path, self.iter_accs, self.iter_losses)
-            
-            return dict_test_report
+        plot_accs_and_losses(file_name, self.output_path, self.iter_accs, self.iter_losses)
+        
+        return dict_test_report
     
     
     def test_gradient_free(self):
