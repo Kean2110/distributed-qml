@@ -15,39 +15,33 @@ from utils.feature_maps import ry_feature_map
 class Client:
     def __init__(self, name: str, other_client_name: str, socket_id_with_server: int, socket_id_with_other_client: int, epr_socket_id_server: int, ctrl_qubit: bool):
         self.name = name
-        self.socket_server = Socket(name, "server", socket_id=socket_id_with_server)
+        self.socket_id_with_server = socket_id_with_server
+        self.socket_id_with_other_client = socket_id_with_other_client
         self.socket_client = Socket(name, other_client_name, socket_id=socket_id_with_other_client)
-        self.epr_socket_server = EPRSocket(remote_app_name="server", epr_socket_id=constants.EPR_SERVER_C1_C1, remote_epr_socket_id=epr_socket_id_server)
+        self.socket_server = Socket(self.name, "server", socket_id=self.socket_id_with_server)
         self.epr_socket_other_client = EPRSocket(remote_app_name=other_client_name, epr_socket_id=constants.EPR_C1_C2_C1, remote_epr_socket_id=constants.EPR_C1_C2_C2)
         self.ctrl_qubit = ctrl_qubit
         self.features = None
         self.features_other_node = None
         self.test_features = None
         self.params = None
-        max_qubits = constants.MAX_VALUES["eprs"] + 1
-        self.netqasm_connection = NetQASMConnection(
-            app_name=name,
-            epr_sockets=[self.epr_socket_server, self.epr_socket_other_client],
-            max_qubits=max_qubits
-        )
-
+        self.max_qubits = constants.MAX_VALUES["eprs"] + 1
 
 
     def start_client(self):
         self.receive_starting_values_from_server()
         # receive instructions from server
-        with self.netqasm_connection:
-            while True:
-                instruction = self.socket_server.recv(block=True)
-                if instruction == constants.EXIT_INSTRUCTION:
-                    break
-                elif instruction == constants.RUN_INSTRUCTION:
-                    self.run_iteration()
-                elif instruction == constants.TEST_INSTRUCTION:
-                    self.run_iteration(test=True)
-                else:
-                    raise ValueError("Unregistered instruction received")
-    
+        while True:
+            instruction = self.socket_server.recv(block=True)
+            if instruction == constants.EXIT_INSTRUCTION:
+                break
+            elif instruction == constants.RUN_INSTRUCTION:
+                self.run_iteration()
+            elif instruction == constants.TEST_INSTRUCTION:
+                self.run_iteration(test=True)
+            else:
+                raise ValueError("Unregistered instruction received")
+        
 
     def receive_starting_values_from_server(self):
         # receive nshots and qdepth
@@ -75,26 +69,30 @@ class Client:
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
         results = []
-        for i, feature in enumerate(features):
-            logger.debug(f"{self.name} Running feature number {i}")
-            single_result = self.run_circuit_locally(feature, thetas)
-            results.append(single_result)
-        
+        netqasm_connection = NetQASMConnection(
+                app_name=self.name,
+                epr_sockets=[self.epr_socket_other_client],
+                max_qubits=self.max_qubits
+        )
+        with netqasm_connection:
+            for i, feature in enumerate(features):
+                logger.debug(f"{self.name} Running feature number {i}")
+                single_result = self.run_circuit_locally(feature, thetas, netqasm_connection)
+                results.append(single_result)
         send_with_header(self.socket_server, results, constants.RESULTS)
 
     
-    def run_circuit_locally(self, feature: float, weights: list[float]):
+    def run_circuit_locally(self, feature: float, weights: list[float], netqasm_connection: NetQASMConnection):
         
         n_shots = self.params["n_shots"]
         q_depth = self.params["q_depth"]
-        
+
         results_arr = []
-        
-        for i in range(n_shots):
-            logger.debug(f"{self.name} is executing shot number {i+1} of {n_shots} shots")
+        with netqasm_connection.loop(n_shots) as i:
+            logger.debug(f"{self.name} is executing shot number {i.index+1} of {n_shots} shots")
             
             # create Qubit and apply future map
-            q = Qubit(self.netqasm_connection)
+            q = Qubit(netqasm_connection)
             ry_feature_map(q, feature)
             
             # we can have max. 5 qubits active at once
@@ -102,7 +100,7 @@ class Client:
             max_eprs = constants.MAX_VALUES["eprs"] # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
             epr_chunks = generate_chunks_with_max_size(max_eprs, q_depth) # get the chunks of epr pairs. depth 10 and max_eprs 4 would yield [4,4,2]
             for j, n_pairs in enumerate(epr_chunks):
-                eprs = self.create_or_recv_epr_pairs(n_pairs)
+                eprs = self.create_or_recv_epr_pairs(n_pairs, netqasm_connection)
                 # execute hidden layer
                 for k in range(len(eprs)):
                     logger.debug(f"{self.name} entered layer: {j * max_eprs + k + 1}")
@@ -119,26 +117,24 @@ class Client:
             
             # measure
             result = q.measure()
-            
-            self.netqasm_connection.flush()
+            netqasm_connection.flush()
             results_arr.append(result.value)
-            
-            
         return results_arr
+    
             
     
-    def create_or_recv_epr_pairs(self, n_pairs: int):
+    def create_or_recv_epr_pairs(self, n_pairs: int, netqasm_conn: NetQASMConnection):
         if self.ctrl_qubit:
             # create epr pairs
             assert self.socket_client.recv(block=True) == "ACK"
-            self.netqasm_connection.flush()
+            netqasm_conn.flush()
             eprs = self.epr_socket_other_client.create_keep(number=n_pairs)
             logger.debug(f"{self.name} generated {n_pairs} epr pairs")
             
         else:
             # receive epr pairs
             self.socket_client.send("ACK")
-            self.netqasm_connection.flush()
+            netqasm_conn.flush()
             eprs = self.epr_socket_other_client.recv_keep(number=n_pairs)
             logger.debug(f"{self.name} received {n_pairs} epr qubits")
         return eprs
