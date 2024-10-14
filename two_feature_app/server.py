@@ -1,6 +1,5 @@
 import os
 import time
-import tracemalloc
 from memory_profiler import profile
 from typing import Literal, Union
 from netqasm.sdk.external import NetQASMConnection, Socket
@@ -84,10 +83,6 @@ class QMLServer:
             start_time = time.time()
             iter_results = self.run_iteration(params)
             SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
-            snapshot = tracemalloc.take_snapshot()
-            top_stats = snapshot.statistics('lineno')
-            for stat in top_stats[:10]:
-                print(stat)
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
             # calculate the loss
@@ -114,10 +109,8 @@ class QMLServer:
         # send params and features to clients
         self.send_params_and_features()
 
-        tracemalloc.start()
         # minimize gradient free
         res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", callback=iteration_callback)
-        tracemalloc.stop()
         # test run
         dict_test_report = self.test_gradient_free()
         
