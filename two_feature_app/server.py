@@ -1,6 +1,5 @@
 import os
 import time
-from memory_profiler import profile
 from typing import Literal, Union
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket
