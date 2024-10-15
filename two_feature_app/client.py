@@ -68,12 +68,13 @@ class Client:
             features = self.features
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
-        results = []
+        # set up NetQASMConnection
         netqasm_connection = NetQASMConnection(
                 app_name=self.name,
                 epr_sockets=[self.epr_socket_other_client],
                 max_qubits=self.max_qubits
         )
+        results = []
         with netqasm_connection:
             for i, feature in enumerate(features):
                 logger.debug(f"{self.name} Running feature number {i}")
@@ -88,8 +89,8 @@ class Client:
         q_depth = self.params["q_depth"]
 
         results_arr = []
-        with netqasm_connection.loop(n_shots) as i:
-            logger.debug(f"{self.name} is executing shot number {i.index+1} of {n_shots} shots")
+        for i in range(n_shots): # cannot use netqasm_connection loop because contains classical communication
+            logger.debug(f"{self.name} is executing shot number {i+1} of {n_shots} shots")
             
             # create Qubit and apply future map
             q = Qubit(netqasm_connection)
@@ -127,6 +128,7 @@ class Client:
         if self.ctrl_qubit:
             # create epr pairs
             assert self.socket_client.recv(block=True) == "ACK"
+           # print("Number of pending commands in ctrl qubit create EPR: ", len(netqasm_conn.builder._pending_commands))
             netqasm_conn.flush()
             eprs = self.epr_socket_other_client.create_keep(number=n_pairs)
             logger.debug(f"{self.name} generated {n_pairs} epr pairs")
@@ -134,6 +136,7 @@ class Client:
         else:
             # receive epr pairs
             self.socket_client.send("ACK")
+           # print("Number of pending commands in NON ctrl qubit recv EPR: ", len(netqasm_conn.builder._pending_commands))
             netqasm_conn.flush()
             eprs = self.epr_socket_other_client.recv_keep(number=n_pairs)
             logger.debug(f"{self.name} received {n_pairs} epr qubits")
