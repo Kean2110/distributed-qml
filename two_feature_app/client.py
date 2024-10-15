@@ -68,12 +68,14 @@ class Client:
             features = self.features
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
-        results = []
+        
         netqasm_connection = NetQASMConnection(
                 app_name=self.name,
                 epr_sockets=[self.epr_socket_other_client],
                 max_qubits=self.max_qubits
         )
+        
+        results = []
         with netqasm_connection:
             for i, feature in enumerate(features):
                 logger.debug(f"{self.name} Running feature number {i}")
@@ -88,8 +90,8 @@ class Client:
         q_depth = self.params["q_depth"]
 
         results_arr = []
-        with netqasm_connection.loop(n_shots) as i:
-            logger.debug(f"{self.name} is executing shot number {i.index+1} of {n_shots} shots")
+        for i in range(n_shots):
+            logger.debug(f"{self.name} is executing shot number {i+1} of {n_shots} shots")
             
             # create Qubit and apply future map
             q = Qubit(netqasm_connection)
