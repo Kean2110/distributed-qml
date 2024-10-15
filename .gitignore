@@ -14,6 +14,9 @@ two_feature_app/output/*
 # Ignore slurm output
 slurm_output/*
 
+# Ignore playground
+test-app/*
+
 scratches/
 # Byte-compiled / optimized / DLL files
 __pycache__/
