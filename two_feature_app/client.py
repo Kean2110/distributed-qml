@@ -128,7 +128,6 @@ class Client:
         if self.ctrl_qubit:
             # create epr pairs
             assert self.socket_client.recv(block=True) == "ACK"
-           # print("Number of pending commands in ctrl qubit create EPR: ", len(netqasm_conn.builder._pending_commands))
             netqasm_conn.flush()
             eprs = self.epr_socket_other_client.create_keep(number=n_pairs)
             logger.debug(f"{self.name} generated {n_pairs} epr pairs")
@@ -136,7 +135,6 @@ class Client:
         else:
             # receive epr pairs
             self.socket_client.send("ACK")
-           # print("Number of pending commands in NON ctrl qubit recv EPR: ", len(netqasm_conn.builder._pending_commands))
             netqasm_conn.flush()
             eprs = self.epr_socket_other_client.recv_keep(number=n_pairs)
             logger.debug(f"{self.name} received {n_pairs} epr qubits")
