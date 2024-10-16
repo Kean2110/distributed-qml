@@ -39,5 +39,6 @@ MAX_VALUES = {
 MIN_VALUES = {
     "q_depth": 1,
     "n_samples": 10,
-    "n_shots": 1
+    "n_shots": 1,
+    "n_qubits": 2
 }

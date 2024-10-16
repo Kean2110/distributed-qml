@@ -1,6 +1,7 @@
 import os
 import yaml
 import uuid
+import threading
 
 from utils import constants
 
@@ -10,6 +11,7 @@ class ConfigParser:
     When being reinstantiated, it returns the current config.
     """
     _instance = None
+    _lock = threading.Lock()
     max_iter = 100
     enable_netqasm_logging = False
     random_seed = 42
@@ -21,12 +23,15 @@ class ConfigParser:
     # either MOONS or IRIS
     dataset_function = "MOONS"
     start_from_checkpoint = False
+    n_qubits = 2
+    layers_with_rcnot = list(range(q_depth)) # per default all layers have a RCNOT
 
     def __new__(cls, config_path=None, run_id=None):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance.load_config(config_path)
-            cls._instance.set_id(run_id)
+            with cls._lock:
+                cls._instance = super().__new__(cls)
+                cls._instance.load_config(config_path)
+                cls._instance.set_id(run_id)
         return cls._instance
 
     def set_id(self, run_id):

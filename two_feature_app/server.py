@@ -19,7 +19,8 @@ from utils.plotting import plot_accs_and_losses
 from netqasm.sdk.shared_memory import SharedMemoryManager
 
 class QMLServer:
-    def __init__(self, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path, test_data=None) -> None:
+    def __init__(self, n_qubits, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path, test_data=None) -> None:
+        self.n_qubits = n_qubits
         self.max_iter = max_iter
         self.random_seed = random_seed
         self.parameter_shift_delta = 0.001
@@ -102,7 +103,6 @@ class QMLServer:
         def iteration_callback(intermediate_params):
             logger.debug(f"Intermediate thetas: {intermediate_params}")
             
-        #with self.server:
         c = ConfigParser()
         logger.info(c.get_config())
         # send params and features to clients
