@@ -36,6 +36,25 @@ def generate_chunks_with_max_size(max_size: int, depth: int) -> list[int]:
     return output_chunks                    
 
 
+def split_array_by_nth_occurrences(n: int, array, element) -> np.array:
+    '''
+    Takes an array, an element and a number as an input.
+    This function splits the input array among every n-th occurrence of the element.
+    So in every split array there is exactly n occurrences of the element.
+    Example:
+        `` split_array_by_nth_occurrences(2, [0,0,1,1,0,0,1,1,0,0,0], 1)
+        `` [[0,0,1,1], [0,0,1,1,0,0,0]]
+    '''
+    nth_indices = []
+    n_occurrences = 0
+    for i, elem in enumerate(array):
+        if elem == element:
+            n_occurrences += 1
+        if n_occurrences % n == 0 and n_occurrences != 0:
+            nth_indices.append(i + 1)
+    return np.split(array, nth_indices)
+
+
 def calculate_parity_from_shots(result_array_client1: list[Literal[0,1]], result_array_client2: list[Literal[0,1]]) -> Literal[0,1]:
     n_shots = len(result_array_client1)
     str_arr_combined_results = [str(result_array_client1[i])+str(result_array_client2[i]) for i in range(n_shots)]
@@ -180,7 +199,10 @@ def load_latest_input_checkpoint(checkpoint_dir: str):
     
 
 if __name__ == '__main__':
-    print(generate_chunks_with_max_size(4, 5))
+    #print(generate_chunks_with_max_size(4, 5))
+    n = 4
+    array = [0,1,1,1,0,0,0,1,1,0,1,0,1,1,1,0,0,0]
+    print(split_array_by_nth_occurrences(4, array, 1))
     
     
     

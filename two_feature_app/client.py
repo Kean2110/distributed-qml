@@ -5,15 +5,16 @@ import os
 #os.environ["NETQASM_SIMULATOR"] = "netsquid_single_thread"
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
-from utils.helper_functions import phase_gate, generate_chunks_with_max_size
+from utils.helper_functions import phase_gate, generate_chunks_with_max_size, split_array_by_nth_occurrences
 from utils.socket_communication import receive_with_header, send_as_str, send_with_header
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
 from utils.feature_maps import ry_feature_map
+from utils.config_parser import ConfigParser
 
 
 class Client:
-    def __init__(self, name: str, other_client_name: str, socket_id_with_server: int, socket_id_with_other_client: int, epr_socket_id_server: int, ctrl_qubit: bool):
+    def __init__(self, name: str, other_client_name: str, socket_id_with_server: int, socket_id_with_other_client: int, ctrl_qubit: bool):
         self.name = name
         self.socket_id_with_server = socket_id_with_server
         self.socket_id_with_other_client = socket_id_with_other_client
@@ -26,6 +27,8 @@ class Client:
         self.test_features = None
         self.params = None
         self.max_qubits = constants.MAX_VALUES["eprs"] + 1
+        c = ConfigParser()
+        self.layers_with_rcnot = c.layers_with_rcnot
 
 
     def start_client(self):
@@ -98,22 +101,28 @@ class Client:
             ry_feature_map(q, feature)
             
             # we can have max. 5 qubits active at once
-            # therefore if we want a depth > 4, we need to execute the hidden layer in multiple rounds
+            # therefore we can only generate maximum of 4 EPR pairs at once
+            # if we run out of EPR pairs, we generate new ones
+            n_required_eprs = len(self.layers_with_rcnot) # number of required epr pairs is the amount of layers with a remote CNOT
             max_eprs = constants.MAX_VALUES["eprs"] # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
-            epr_chunks = generate_chunks_with_max_size(max_eprs, q_depth) # get the chunks of epr pairs. depth 10 and max_eprs 4 would yield [4,4,2]
-            for j, n_pairs in enumerate(epr_chunks):
-                eprs = self.create_or_recv_epr_pairs(n_pairs, netqasm_connection)
-                # execute hidden layer
-                for k in range(len(eprs)):
-                    logger.debug(f"{self.name} entered layer: {j * max_eprs + k + 1}")
             
-                    # apply theta rotation
-                    q.rot_Y(angle=weights[j * max_eprs + k])
-                    # apply remote CNOT between clients
+            eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection) # generate first set of EPR pairs
+            depth_epr_map = [1 if i in self.layers_with_rcnot else 0 for i in range(q_depth)] # map of which layers have an EPR pair
+            
+            for i, bit_val in enumerate(depth_epr_map):
+                logger.debug(f"{self.name} entered layer: {i}")
+                q.rot_Y(angle=weights[i])
+                
+                if bit_val:
+                    if not eprs: # if no EPRs are left, generate new ones
+                        eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection)
+                    epr = eprs.pop() # pop EPR pair
+                    n_required_eprs -= 1 # reduce amount of required EPR pairs
                     if self.ctrl_qubit:
-                        remote_cnot_control(self.socket_client, q, eprs[k])
+                        remote_cnot_control(self.socket_client, q, epr)
                     else:
-                        remote_cnot_target(self.socket_client, q, eprs[k])
+                        remote_cnot_target(self.socket_client, q, epr)
+                        
             # apply one more rotation in the end
             q.rot_Y(angle=weights[-1])        
             
