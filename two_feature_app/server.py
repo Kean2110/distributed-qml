@@ -158,6 +158,7 @@ class QMLServer:
         send_with_header(self.socket_client2, test_features_client_2, constants.TEST_FEATURES)
 
     
+    @global_timer.timer
     def run_iteration(self, params, test=False):
         if test:
             self.send_test_instructions()

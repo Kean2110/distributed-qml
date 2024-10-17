@@ -53,6 +53,7 @@ class ConfigParser:
         for key, value in self.config.items():
             ConfigParser.check_restrictions(key, value)
             setattr(self, key, value)
+        ConfigParser.check_epr_list_restriction(self.layers_with_rcnot, self.q_depth)
     
     def get_config(self) -> dict:
         return self.config
@@ -67,3 +68,14 @@ class ConfigParser:
             max = constants.MAX_VALUES[key]
             if value > max:
                 raise ValueError(f"The provided value for {key} is too big. It must be <= {max}") 
+            
+    @staticmethod
+    def check_epr_list_restriction(list_of_epr_layers: list, q_depth: int):
+        if max(list_of_epr_layers) >= q_depth:
+            raise ValueError(f"Layer {max(list_of_epr_layers)} in the list of layers with RCNOTs must be smaller than the depth {q_depth} of the circuit")
+        if min(list_of_epr_layers) < 0:
+            raise ValueError(f"Layers must be positive in the list of RCNOT layers.")
+        if len(list_of_epr_layers) > q_depth:
+            raise ValueError(f"RCNOT layer list {list_of_epr_layers} is too long for depth {q_depth}")
+        if len(list_of_epr_layers) != len(set(list_of_epr_layers)):
+            raise ValueError(f"RCNOT layer list {list_of_epr_layers} contains duplicates.")
