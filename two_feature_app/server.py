@@ -6,10 +6,10 @@ from netqasm.sdk import EPRSocket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
 from sklearn.model_selection import train_test_split
 from utils.config_parser import ConfigParser
-from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint
+from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, upper_bound_constraint
 from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header
-from scipy.optimize import minimize, Bounds
+from scipy.optimize import minimize
 from utils.timer import global_timer
 import numpy as np
 import math
@@ -62,7 +62,9 @@ class QMLServer:
     def initialize_thetas(self, initial_thetas: list[Union[int, float]]) -> np.ndarray:
         # if no initial values initialize randomly
         if initial_thetas is None:
-            initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
+            #initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
+            np.random.seed(self.random_seed)
+            initial_thetas = np.random.uniform(constants.LOWER_BOUND_PARAMS, constants.UPPER_BOUND_PARAMS, (self.q_depth + 1) * self.n_qubits)
         else:
             # convert to numpy float values
             initial_thetas = np.array(initial_thetas, dtype=float)
@@ -109,8 +111,12 @@ class QMLServer:
         self.send_params_and_features()
 
         # minimize gradient free
-        theta_bounds = Bounds(0, 2*math.pi)
-        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", bounds=theta_bounds, callback=iteration_callback)
+        constraints = [
+            {'type': 'ineq', 'fun': lower_bound_constraint},
+            {'type': 'ineq', 'fun': upper_bound_constraint}
+        ]
+        
+        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", constraints=constraints, callback=iteration_callback)
         # test run
         dict_test_report = self.test_gradient_free()
         

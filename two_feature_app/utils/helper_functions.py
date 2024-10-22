@@ -4,7 +4,7 @@ import os
 import pickle
 import shutil
 import time
-from typing import List, Tuple, Union, Literal
+from typing import Iterable, List, Tuple, Union, Literal
 from netqasm.sdk import Qubit, EPRSocket
 from sklearn.datasets import make_moons, load_iris
 import numpy as np
@@ -13,6 +13,7 @@ import random
 import math
 from sklearn.preprocessing import MinMaxScaler
 from utils.logger import logger
+import utils.constants
 
 from yaml import dump
 
@@ -135,7 +136,7 @@ def prepare_dataset_iris():
     X_filtered = X[filter_mask]
     y_filtered = iris.target[filter_mask]
     # min max scale features to range between 0 and 1
-    scaler = MinMaxScaler(feature_range=(0,1))
+    scaler = MinMaxScaler(feature_range=(utils.constants.LOWER_BOUND_INPUTS, utils.constants.UPPER_BOUND_INPUTS))
     X_scaled = scaler.fit_transform(X_filtered)
     return X_scaled, y_filtered
     
@@ -147,7 +148,7 @@ def prepare_dataset_moons(n_samples: int = 100) -> Tuple[NDArray[np.float_], NDA
     moons = make_moons(n_samples=n_samples)
     X = moons[0]
     y = moons[1]
-    scaler = MinMaxScaler(feature_range=(0,1))
+    scaler = MinMaxScaler(feature_range=(utils.constants.LOWER_BOUND_INPUTS, utils.constants.UPPER_BOUND_INPUTS))
     X_scaled = scaler.fit_transform(X)
     return X_scaled, y
 
@@ -197,6 +198,15 @@ def load_latest_input_checkpoint(checkpoint_dir: str):
         logger.warning("No checkpoint found")
         raise FileNotFoundError(f"No files found in {checkpoint_dir}")
     
+    
+def lower_bound_constraint(x: Iterable):
+    return x - utils.constants.LOWER_BOUND_PARAMS
+
+
+def upper_bound_constraint(x: Iterable):
+    return utils.constants.UPPER_BOUND_PARAMS - x
+        
+
 
 if __name__ == '__main__':
     #print(generate_chunks_with_max_size(4, 5))

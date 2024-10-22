@@ -1,3 +1,4 @@
+import math
 import os
 
 # Instructions
@@ -42,3 +43,10 @@ MIN_VALUES = {
     "n_shots": 1,
     "n_qubits": 2
 }
+
+# BOUNDS constraints for the params
+LOWER_BOUND_PARAMS = 0
+UPPER_BOUND_PARAMS = 2 * math.pi
+
+LOWER_BOUND_INPUTS = 0
+UPPER_BOUND_INPUTS = 1
