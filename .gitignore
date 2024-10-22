@@ -17,6 +17,10 @@ slurm_output/*
 # Ignore playground
 test-app/*
 
+# Ignore classification reports
+qiskit_baseline/classification_reports/*
+!/qiskit_baseline/classification_reports/.gitkeep
+
 scratches/
 # Byte-compiled / optimized / DLL files
 __pycache__/
