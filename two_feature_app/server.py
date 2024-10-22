@@ -9,7 +9,7 @@ from utils.config_parser import ConfigParser
 from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint
 from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header
-from scipy.optimize import minimize
+from scipy.optimize import minimize, Bounds
 from utils.timer import global_timer
 import numpy as np
 import math
@@ -109,7 +109,8 @@ class QMLServer:
         self.send_params_and_features()
 
         # minimize gradient free
-        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", callback=iteration_callback)
+        theta_bounds = Bounds(0, 2*math.pi)
+        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", bounds=theta_bounds, callback=iteration_callback)
         # test run
         dict_test_report = self.test_gradient_free()
         
