@@ -1,9 +1,10 @@
 import csv
+import math
 import os
 import pickle
 import time
 import config
-from typing import List, Literal
+from typing import Iterable, List, Literal
 from matplotlib import pyplot as plt
 from yaml import dump
 import numpy as np
@@ -28,7 +29,8 @@ def prepare_dataset_iris(n_features=2):
     X_filtered = X[filter_mask]
     y_filtered = iris.target[filter_mask]
     # min max scale features to range between 0 and 1
-    scaler = MinMaxScaler(feature_range=(0,1))
+    #scaler = MinMaxScaler(feature_range=(0,1))
+    scaler = MinMaxScaler(feature_range=(0, 2*math.pi))
     X_scaled = scaler.fit_transform(X_filtered)
     return X_scaled, y_filtered
     
@@ -118,7 +120,8 @@ def save_classification_report(classification_report: dict, filename:str):
         "SAMPLES": config.SAMPLES,
         "TEST_FRAC": config.TEST_SIZE,
         "DATASET": config.DATASET_FUNCTION,
-        "FEATURE_MAP": config.FEATURE_MAP
+        "FEATURE_MAP": config.FEATURE_MAP,
+        "COMMENT": config.FILENAME_ADDON
     }
     with open(full_path, "w") as txt_file:
         dump(classification_report, txt_file, sort_keys=False)
@@ -144,6 +147,14 @@ def save_weights_config_test_data(weights, test_data, test_labels, filename):
     save_dict = {"weights": weights, "config": config_dict, "test_data": test_data, "test_labels": test_labels}
     with open(file_location, 'wb') as file:
         pickle.dump(save_dict, file)
+        
+
+def lower_bound_constraint(x: Iterable) -> float:
+    return x - 0
+
+
+def upper_bound_constraint(x: Iterable) -> float:
+    return math.pi*2 - x
 
     
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
 from sklearn.metrics import log_loss, accuracy_score, mean_squared_error, brier_score_loss, classification_report
 from sklearn.model_selection import train_test_split
-from helper_functions import check_parity, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_circuit, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data
+from helper_functions import check_parity, lower_bound_constraint, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_circuit, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data, upper_bound_constraint
 from scipy.optimize import minimize, Bounds
 import numpy as np
 import random
@@ -46,14 +46,20 @@ def create_circuit(n_qubits, q_depth, features, weights):
     #feature_map = create_ZZ_feature_map(n_qubits, features)
     feature_map = create_rot_feature_map(n_qubits, features)
     circuit = circuit.compose(feature_map)
+     # adapt manually according to which remote CNOTs we leave out, if range(q_depth), we leave no RCNOTs out
+    layers_with_rcnot = range(q_depth)
     # apply weights // entanglement layer
     for i in range(q_depth):
         for j, qbit in enumerate(qreg_q):
             circuit.ry(weights[i * n_qubits + j], qbit)
         for j, qbit in enumerate(qreg_q):
-            if (j != 1 or i == 0 or i == q_depth - 1) and (j < len(qreg_q) - 1):
-            #if j < len(qreg_q) - 1:
-                circuit.cx(qbit, qreg_q[j+1])
+            # j <= len(qreg) - 1 means we leave out the last qubit
+            if j < len(qreg_q) - 1:
+                # j == 1 is the RCNOT, therefore we construct all CNOTs that are not remote (j != 1) --> only applicable for 4 QUBITS!
+                # i in layers_with_rcnot constructs the RCNOT in the layers we specified in the array above
+                # if (j != 1) or (i in layers_with_rcnot):
+                if i in layers_with_rcnot:
+                    circuit.cx(qbit, qreg_q[j+1])
     for j, qbit in enumerate(qreg_q):
         circuit.ry(weights[q_depth * n_qubits + j], qbit)
             
@@ -117,10 +123,17 @@ def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
     # callback function executed after every iteration of the minimize function        
     def iteration_callback(intermediate_params):
         print("Intermediate thetas: ", intermediate_params)
+        print(f"Max theta: {max(intermediate_params)}, min theta: {min(intermediate_params)}")
         return True
         
     # minimize gradient free
-    res = minimize(method_to_optimize, thetas, args=(X, y), options={'disp': True, 'maxiter': num_iter}, method=config.OPTIM_METHOD, callback=iteration_callback)
+    # minimize gradient free
+    constraints = [
+        {'type': 'ineq', 'fun': lower_bound_constraint},
+        {'type': 'ineq', 'fun': upper_bound_constraint}
+    ]
+    bounds = Bounds(0, 2*math.pi)
+    res = minimize(method_to_optimize, thetas, args=(X, y), options={'disp': True, 'maxiter': num_iter}, method=config.OPTIM_METHOD, callback=iteration_callback, constraints=constraints)
     save_losses_weights_predictions(f"debug_results_{config.OPTIM_METHOD}.csv", losses=all_losses, weights=all_weights, predictions=all_predictions)
     # return losses and accuracies for plotting
     # return last (optimized) weights for testing
@@ -153,7 +166,7 @@ def main():
     X, y = load_dataset(config.DATASET_FUNCTION, config.SAMPLES)
     X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=config.TEST_SIZE, random_state=config.RANDOM_SEED, stratify=y)
     losses, accs, weights = run_gradient_free(X_train, y_train, config.INITIAL_THETAS, config.NUM_ITER, config.N_QUBITS, config.Q_DEPTH)
-    filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}samples_{config.FEATURE_MAP}fmap_{config.N_QUBITS}qubits{config.FILENAME_ADDON}"
+    filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}samples_{config.FEATURE_MAP}fmap_{config.N_QUBITS}qubits_{config.NUM_ITER}iters{config.FILENAME_ADDON}"
     plot_acc_and_loss("accs_loss_" + filename, accs, losses)
     # save weights
     save_weights_config_test_data(weights, X_test, y_test, filename)
@@ -165,3 +178,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    #print(create_circuit(config.N_QUBITS, config.Q_DEPTH, np.ones(config.N_QUBITS), np.zeros(config.N_QUBITS * (config.Q_DEPTH + 1))))
