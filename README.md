@@ -2,13 +2,14 @@
 Distributed Quantum Machine Learning Master's Thesis
 
 # Setup and Installation
-1. Create a virtual environment or conda environment
-2. Activate the environment
-3. Install NetQASM: pip install netqasm
-4. Install SquidASM \
+1. Make sure you have a python version 3.9.x installed
+2. Create a virtual environment or conda environment
+3. Activate the environment
+4. Install NetQASM: pip install netqasm
+5. Install SquidASM \
     4.1. Install NetSquid: https://netsquid.org/#registration \
     4.2. Install SquidASM: pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-password}@pypi.netsquid.org
-5. pip install -r requirements.txt
+6. pip install -r requirements.txt
 
 # Repo structure
 
