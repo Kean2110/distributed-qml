@@ -51,14 +51,6 @@ class Client:
         self.params = receive_with_header(self.socket_server, constants.PARAMS)
         logger.info(f"{self.name} received params dict: {self.params}")
         
-        # receive features
-        self.features = receive_with_header(self.socket_server, constants.OWN_FEATURES, expected_dtype=np.ndarray)
-        logger.info(f"{self.name} received own features")
-        
-        # receive other clients features
-        self.features_other_node = receive_with_header(self.socket_server, constants.OTHER_FEATURES, expected_dtype=np.ndarray)
-        logger.info(f"{self.name} received other nodes features")
-        
         # receive own test features
         self.test_features = receive_with_header(self.socket_server, constants.TEST_FEATURES)
         logger.info(f"{self.name} received test features")
@@ -68,9 +60,11 @@ class Client:
         if test:
             features = self.test_features
         else:
-            features = self.features
+            features = receive_with_header(self.socket_server, constants.OWN_FEATURES, expected_dtype=np.ndarray)
+        
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
+        
         
         netqasm_connection = NetQASMConnection(
                 app_name=self.name,
