@@ -21,7 +21,7 @@ netsquid-entanglementtracker==2.0.0
 netsquid-magic==15.0.0
 netsquid-netbuilder==0.1.1
 netsquid-physlayer==4.3.0
-numpy==1.26.4
+numpy==1.22.4
 packaging==24.1
 pandas==2.2.3
 pbr==6.1.0
