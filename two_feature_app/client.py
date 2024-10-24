@@ -81,7 +81,7 @@ class Client:
         results = []
         with netqasm_connection:
             for i, feature in enumerate(features):
-                logger.debug(f"{self.name} Running feature number {i}")
+                logger.debug(f"{self.name} Running feature number {i} with value {feature}")
                 single_result = self.run_circuit_locally(feature, thetas, netqasm_connection)
                 results.append(single_result)
         send_with_header(self.socket_server, results, constants.RESULTS)

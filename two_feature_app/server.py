@@ -28,35 +28,51 @@ class QMLServer:
         self.n_qubits = 2
         self.n_shots = n_shots
         self.output_path = output_path
+        self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
+        self.X_train_batched, self.y_train_batched = None, None
+        self.socket_client1, self.socket_client2 = None, None
+        self.n_batches, self.iterations = None, None
+        self.start_iteration = 0
+        self.iter_losses, self.iter_accs = [], []
+        self.thetas = initial_thetas
+        
+        # setup the dataset
+        self.setup_dataset(epochs, dataset_function, n_samples, test_size, random_seed, test_data)
+        
         # load the params from the checkpoint
-        self.load_params_from_checkpoint(start_from_checkpoint)
-        self.thetas = initial_thetas if self.thetas is None else self.thetas # covers the case that we are first iteration in our checkpoint iter, so we return None as thetas and want to still have our initial params that we defined in the config
+        if start_from_checkpoint:
+            self.load_params_from_checkpoint()
         self.thetas = self.initialize_thetas(self.thetas)
         
+        self.setup_sockets()
+        self.setup_model_saver()
+    
+    
+    def setup_dataset(self, epochs, dataset_function, n_samples, test_size, random_seed, test_data):
+        # load data and initialize iterations accordingly
+        self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, test_size, random_seed, test_data)
+        self.iterations = epochs # iterations = epochs
+        
+    
+    def setup_sockets(self):
         # setup classical socket connections
         self.socket_client1 = Socket("server", "client1", socket_id=constants.SOCKET_SERVER_C1)
         self.socket_client2 = Socket("server", "client2", socket_id=constants.SOCKET_SERVER_C2)
         
-        self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, test_size, random_seed, test_data)
         
+    def setup_model_saver(self):    
         # initialize the model saver
         # if we didnt load losses from the checkpoint we dont have a best loss yet
         # else it's the last loss of our losses
         best_loss = None if not self.iter_losses else self.iter_losses[-1]
         self.ms = ModelSaver(self.output_path, best_loss)
-        
     
-    def load_params_from_checkpoint(self, start_from_checkpoint):
+    
+    def load_params_from_checkpoint(self):
         checkpoint_path = os.path.join(self.output_path, "checkpoints")
-        if start_from_checkpoint:
-            self.thetas, self.start_iteration, self.iter_losses, self.iter_accs = load_latest_checkpoint(checkpoint_path)
-            logger.info(f"Loaded params {self.thetas}, iteration no {self.start_iteration}, losses {self.iter_losses} and accs {self.iter_accs} from checkpoint")
-            self.iterations -= self.start_iteration
-        else:
-            self.start_iteration = 0
-            self.iter_losses = []
-            self.iter_accs = []
-            self.thetas = None
+        self.thetas, self.start_iteration, self.iter_losses, self.iter_accs = load_latest_checkpoint(checkpoint_path)
+        logger.info(f"Loaded params {self.thetas}, iteration no {self.start_iteration}, losses {self.iter_losses} and accs {self.iter_accs} from checkpoint")
+        self.iterations -= self.start_iteration
     
         
     def initialize_thetas(self, initial_thetas: list[Union[int, float]]) -> np.ndarray:
