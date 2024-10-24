@@ -77,4 +77,4 @@ For that u can use screen.
 6. return to your session anytime by pressing executing "screen -r"
 
 # Additional notes
-- Since the runtimes can be long, make sure that you do not override the config file that was used for a currently used run. In case the run is stopped and attempts to re-run, the same config file will be used.
+Since the runtimes can be long, make sure that you do not override the config file that was used for a currently used run. In case the run is stopped and attempts to re-run, the same config file will be used.
