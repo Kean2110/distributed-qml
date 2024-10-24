@@ -92,6 +92,9 @@ def split_data_into_batches(data: List[Tuple[float, float]], labels: List[int], 
     :data: the data samples as a list
     :returns: the batches that were created
     """
+    if batch_size > len(data):
+        return [np.array(data)], [np.array(labels)]
+    
     # randomly shuffles the data
     combined_data = list(zip(data, labels))
     random.seed(random_seed)
@@ -210,9 +213,10 @@ def upper_bound_constraint(x: Iterable):
 
 if __name__ == '__main__':
     #print(generate_chunks_with_max_size(4, 5))
-    n = 4
-    array = [0,1,1,1,0,0,0,1,1,0,1,0,1,1,1,0,0,0]
-    print(split_array_by_nth_occurrences(4, array, 1))
+    #n = 4
+    #array = [0,1,1,1,0,0,0,1,1,0,1,0,1,1,1,0,0,0]
+    #print(split_array_by_nth_occurrences(4, array, 1))
+    print(split_data_into_batches([0,0,0], [0,0,0], 3))
     
     
     
