@@ -19,9 +19,9 @@ from utils.plotting import plot_accs_and_losses
 from netqasm.sdk.shared_memory import SharedMemoryManager
 
 class QMLServer:
-    def __init__(self, n_qubits, max_iter, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path, test_data=None) -> None:
+    def __init__(self, n_qubits, epochs, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path, test_data=None) -> None:
         self.n_qubits = n_qubits
-        self.max_iter = max_iter
+        self.iterations = epochs
         self.random_seed = random_seed
         self.parameter_shift_delta = 0.001
         self.q_depth = q_depth
@@ -51,7 +51,7 @@ class QMLServer:
         if start_from_checkpoint:
             self.thetas, self.start_iteration, self.iter_losses, self.iter_accs = load_latest_checkpoint(checkpoint_path)
             logger.info(f"Loaded params {self.thetas}, iteration no {self.start_iteration}, losses {self.iter_losses} and accs {self.iter_accs} from checkpoint")
-            self.max_iter -= self.start_iteration
+            self.iterations -= self.start_iteration
         else:
             self.start_iteration = 0
             self.iter_losses = []
@@ -80,7 +80,7 @@ class QMLServer:
         # returns the loss as the opitmization goal
         def method_to_optimize(params, ys):
             nonlocal iteration
-            logger.info(f"Entering iteration {iteration + 1} of {self.max_iter + self.start_iteration}")
+            logger.info(f"Entering iteration {iteration + 1} of {self.iterations + self.start_iteration}")
             # run the model 
             start_time = time.time()
             iter_results = self.run_iteration(params)
@@ -116,7 +116,7 @@ class QMLServer:
             {'type': 'ineq', 'fun': upper_bound_constraint}
         ]
         
-        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.max_iter}, method="COBYLA", constraints=constraints, callback=iteration_callback)
+        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.iterations}, method="COBYLA", constraints=constraints, callback=iteration_callback)
         # test run
         dict_test_report = self.test_gradient_free()
         

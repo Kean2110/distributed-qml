@@ -12,7 +12,7 @@ class ConfigParser:
     """
     _instance = None
     _lock = threading.Lock()
-    max_iter = 100
+    epochs = 100
     enable_netqasm_logging = False
     random_seed = 42
     q_depth = 4
