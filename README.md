@@ -10,6 +10,8 @@ Distributed Quantum Machine Learning Master's Thesis
     4.1. Install NetSquid: https://netsquid.org/#registration \
     4.2. Install SquidASM: pip install squidasm --extra-index-url=https://{netsquid-user-name}:{netsquid-password}@pypi.netsquid.org
 6. pip install -r requirements.txt
+- To create a pip requirements.txt use pip list --format=freeze > requirements.txt
+- Watch out that you install the NetQASM and Squidasm versions that are specified in the requirements.txt
 
 # Repo structure
 
@@ -75,4 +77,4 @@ For that u can use screen.
 6. return to your session anytime by pressing executing "screen -r"
 
 # Additional notes
-Since the runtimes can be long, make sure that you do not override the config file that was used for a currently used run. In case the run is stopped and attempts to re-run, the same config file will be used.
+- Since the runtimes can be long, make sure that you do not override the config file that was used for a currently used run. In case the run is stopped and attempts to re-run, the same config file will be used.

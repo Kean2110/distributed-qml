@@ -3,7 +3,7 @@ import os
 from typing import Literal
 from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
-from sklearn.metrics import log_loss, accuracy_score, mean_squared_error, brier_score_loss, classification_report
+from sklearn.metrics import log_loss, accuracy_score, brier_score_loss, classification_report
 from sklearn.model_selection import train_test_split
 from helper_functions import check_parity, lower_bound_constraint, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_circuit, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data, upper_bound_constraint
 from scipy.optimize import minimize, Bounds

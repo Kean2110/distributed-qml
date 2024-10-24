@@ -92,6 +92,9 @@ def split_data_into_batches(data: List[Tuple[float, float]], labels: List[int], 
     :data: the data samples as a list
     :returns: the batches that were created
     """
+    if batch_size > len(data):
+        return [np.array(data)], [np.array(labels)]
+    
     # randomly shuffles the data
     combined_data = list(zip(data, labels))
     random.seed(random_seed)

@@ -1,7 +1,6 @@
 import ast
 import numpy as np
-import torch
-from typing import Literal, Union
+from typing import Union
 from netqasm.sdk.classical_communication.message import StructuredMessage
 from netqasm.sdk.external import BroadcastChannel, Socket
 
@@ -37,7 +36,7 @@ def receive_and_eval(channel: Union[Socket, BroadcastChannel]) -> Union[bytes, i
     return ast.literal_eval(str_value)
 
 
-def send_tensor(channel: Union[Socket, BroadcastChannel], value: torch.Tensor) -> None:
+def send_tensor(channel: Union[Socket, BroadcastChannel], value) -> None:
     """
     Converts a pytorch tensor to float and then to string and send it to a socket/broadcast_channel.
 
