@@ -44,9 +44,12 @@ MIN_VALUES = {
     "n_qubits": 2
 }
 
+# EPSILON added onto the lower bounds to prevent wrong angle calculations
+BOUND_EPSILON = 1e-4
+
 # BOUNDS constraints for the params
-LOWER_BOUND_PARAMS = 0
+LOWER_BOUND_PARAMS = 0 + BOUND_EPSILON
 UPPER_BOUND_PARAMS = 2 * math.pi
 
-LOWER_BOUND_INPUTS = 0
+LOWER_BOUND_INPUTS = 0 + BOUND_EPSILON
 UPPER_BOUND_INPUTS = 1
