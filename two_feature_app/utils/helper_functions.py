@@ -213,9 +213,10 @@ def upper_bound_constraint(x: Iterable):
 
 if __name__ == '__main__':
     #print(generate_chunks_with_max_size(4, 5))
-    n = 4
-    array = [0,1,1,1,0,0,0,1,1,0,1,0,1,1,1,0,0,0]
-    print(split_array_by_nth_occurrences(4, array, 1))
+    #n = 4
+    #array = [0,1,1,1,0,0,0,1,1,0,1,0,1,1,1,0,0,0]
+    #print(split_array_by_nth_occurrences(4, array, 1))
+    print(split_data_into_batches([0,0,0], [0,0,0], 3))
     
     
     
