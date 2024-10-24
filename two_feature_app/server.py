@@ -72,7 +72,7 @@ class QMLServer:
         return initial_thetas
        
     @global_timer.timer
-    def run_gradient_free(self, file_name: str) -> dict:
+    def train_gradient_free(self, file_name: str) -> dict:
         iteration = self.start_iteration
         
         # function to optimize
