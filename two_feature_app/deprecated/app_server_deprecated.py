@@ -21,7 +21,7 @@ def main(app_config=None, num_iter=1, initial_thetas_client_1=None, initial_thet
     server = QMLServer(num_iter, [initial_thetas_client_1, initial_thetas_client_2], batch_size, learning_rate, random_seed, q_depth, dataset_function)
     try: 
         #server.run(server.process_batch_gradient_free, "batch_loss_gradient_free.png")
-        server.run_gradient_free("batch_loss_gradient_free.png")
+        server.train_gradient_free("batch_loss_gradient_free.png")
     except Exception as e:
         print("An error occured in server: ", e)
         import traceback, sys

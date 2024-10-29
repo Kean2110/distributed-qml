@@ -3,7 +3,6 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes, ZZFeatureMap
 from qiskit_algorithms.utils import algorithm_globals
 from qiskit_machine_learning.neural_networks import SamplerQNN, EstimatorQNN
-from qiskit_machine_learning.connectors import TorchConnector
 
 def create_qnn():
     feature_map = ZZFeatureMap(2)
