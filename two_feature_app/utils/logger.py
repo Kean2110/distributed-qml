@@ -5,8 +5,8 @@ import sys
 
 logger = logging.getLogger("DQML")
 
-def setup_logging(enable_netqasm_logging, output_path):
-    if enable_netqasm_logging:
+def setup_logging(enable_netqasm_logs, output_path):
+    if enable_netqasm_logs:
         logger = get_netqasm_logger()
     else:
         logger = logging.getLogger("DQML")
