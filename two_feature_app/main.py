@@ -3,9 +3,6 @@ import os
 os.environ["NETQASM_SIMULATOR"] = "netsquid"
 from netqasm.runtime.application import default_app_instance
 from netqasm.sdk.external import simulate_application
-from netqasm.runtime.debug import run_application
-from netqasm.logging.glob import get_netqasm_logger, set_log_level
-from utils.logger import setup_logging
 from utils.config_parser import ConfigParser
 import glob
 import yaml

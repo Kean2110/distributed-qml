@@ -28,7 +28,7 @@ SOCKET_SERVER_C1 = 0
 SOCKET_SERVER_C2 = 1
 SOCKET_C1_C2 = 2
 
-PROJECT_BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+APP_BASE_PATH = os.getcwd()
 
 # MAXIMUM Values defined
 # MAX DEPTH OF 4 RIGHT NOW BECAUSE ONLY 5 QUBITS ARE SUPPORTED!

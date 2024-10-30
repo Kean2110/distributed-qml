@@ -44,8 +44,8 @@ class ConfigParser:
         # if no config path provided, load the default config
         if not config_path:
             config_path = "config.yaml"
-        parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
-        config_file = os.path.join(parent_dir, config_path)
+        app_dir = os.getcwd()
+        config_file = os.path.join(app_dir, config_path)
         # load config
         with open(config_file, 'r') as file:
             self.config = yaml.safe_load(file)
