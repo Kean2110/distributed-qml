@@ -25,7 +25,7 @@ class ConfigParser:
     dataset_function = "MOONS"
     start_from_checkpoint = False
     n_qubits = 2
-    layers_with_rcnot = list(range(q_depth)) # per default all layers have a RCNOT
+    layers_with_rcnot = None
 
     def __new__(cls, config_path=None, run_id=None):
         if cls._instance is None:
@@ -54,6 +54,8 @@ class ConfigParser:
         for key, value in self.config.items():
             ConfigParser.check_restrictions(key, value)
             setattr(self, key, value)
+        if not self.layers_with_rcnot:
+            self.layers_with_rcnot = list(range(self.q_depth)) # per default all layers have a RCNOT
         ConfigParser.check_epr_list_restriction(self.layers_with_rcnot, self.q_depth)
     
     def get_config(self) -> dict:
