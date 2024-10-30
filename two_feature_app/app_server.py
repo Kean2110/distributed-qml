@@ -9,7 +9,7 @@ import server
 
 def main(app_config=None):
     config = ConfigParser(None, None) # reinstantiate in case we start our app with "netqasm simulate" (then main.py is not executed)
-    output_path = os.path.join(constants.PROJECT_BASE_PATH, "output", f"{config.run_id}")
+    output_path = os.path.join(constants.APP_BASE_PATH, "output", f"{config.run_id}")
     setup_output_folder(output_path, config.config_path)
     setup_logging(config.enable_netqasm_logs, output_path)
     server_instance = server.QMLServer(config.n_qubits, config.epochs, config.initial_thetas, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, config.start_from_checkpoint, output_path, config.batch_size)
@@ -33,11 +33,11 @@ def main(app_config=None):
 
 def main_test_only():
     # load latest checkpoint from input weights folder
-    input_checkpoint_dir = os.path.join(constants.PROJECT_BASE_PATH, "input_weights")
+    input_checkpoint_dir = os.path.join(constants.APP_BASE_PATH, "input_weights")
     data = load_latest_input_checkpoint(input_checkpoint_dir)
     config = data["config"]
     # set ouput path
-    output_path = os.path.join(constants.PROJECT_BASE_PATH, "output", f"TEST_ONLY_{config['q_depth']}_{config['n_shots']}_{config['n_samples']}_{config['dataset_function']}")
+    output_path = os.path.join(constants.APP_BASE_PATH, "output", f"TEST_ONLY_{config['q_depth']}_{config['n_shots']}_{config['n_samples']}_{config['dataset_function']}")
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     # setup logging
