@@ -34,7 +34,8 @@ APP_BASE_PATH = os.getcwd()
 # MAX DEPTH OF 4 RIGHT NOW BECAUSE ONLY 5 QUBITS ARE SUPPORTED!
 MAX_VALUES = {
     "q_depth": 8,
-    "eprs": 4
+    "eprs": 4,
+    "qubits_per_client": 5
 }
 
 MIN_VALUES = {

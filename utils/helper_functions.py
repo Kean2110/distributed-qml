@@ -56,13 +56,13 @@ def split_array_by_nth_occurrences(n: int, array, element) -> np.array:
     return np.split(array, nth_indices)
 
 
-def calculate_parity_from_shots(result_array_client1: list[Literal[0,1]], result_array_client2: list[Literal[0,1]]) -> Literal[0,1]:
-    n_shots = len(result_array_client1)
-    str_arr_combined_results = [str(result_array_client1[i])+str(result_array_client2[i]) for i in range(n_shots)]
+def calculate_parity_from_shots(result_arrays: list[list[Literal[0,1]]]) -> Literal[0,1]:
+    bitstrings = np.array(result_arrays).T
+    n_shots = len(bitstrings)
     zeros = 0
     ones = 0
-    for single_combined_measurement in str_arr_combined_results:
-        if single_combined_measurement.count('1') % 2 == 0:
+    for bitstring in bitstrings:
+        if sum(bitstring) % 2 == 0:
             zeros += 1
         else:
             ones += 1
@@ -125,16 +125,16 @@ def split_data_into_batches(data: List[Tuple[float, float]], labels: List[int], 
     return first_batches, first_labels
 
 
-def prepare_dataset_iris():
+def prepare_dataset_iris(n_features = 2):
     """
     Loads the Iris dataset from scikit-learn, filters out the first two features from each sample
     and transforms it into a binary classification problem by ommitting one class.
     Then the features are normalized fit in the range [0,1]
     """
     iris = load_iris()
-    # use only first two features of the iris dataset
-    X = iris.data[:,:2]
-    # filter out only zero and one classes
+    # reduce number of features
+    X = iris.data[:,:n_features]
+    # filter out only zero and one classes to make it binary
     filter_mask = np.isin(iris.target, [0,1])
     X_filtered = X[filter_mask]
     y_filtered = iris.target[filter_mask]
@@ -212,11 +212,7 @@ def upper_bound_constraint(x: Iterable):
 
 
 if __name__ == '__main__':
-    #print(generate_chunks_with_max_size(4, 5))
-    #n = 4
-    #array = [0,1,1,1,0,0,0,1,1,0,1,0,1,1,1,0,0,0]
-    #print(split_array_by_nth_occurrences(4, array, 1))
-    print(split_data_into_batches([0,0,0], [0,0,0], 3))
+    print(calculate_parity_from_shots([[1,1,0], [0,0,0], [0,0,0]]))
     
     
     
