@@ -20,7 +20,7 @@ class ConfigParser:
     n_samples = 100
     test_size = 0.2
     initial_thetas = None
-    batch_size = n_samples
+    batch_size = int(n_samples * (1-test_size))
     # either MOONS or IRIS
     dataset_function = "MOONS"
     start_from_checkpoint = False

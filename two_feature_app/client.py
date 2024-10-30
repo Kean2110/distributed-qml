@@ -98,7 +98,7 @@ class Client:
             # therefore we can only generate maximum of 4 EPR pairs at once
             # if we run out of EPR pairs, we generate new ones
             n_required_eprs = len(self.layers_with_rcnot) # number of required epr pairs is the amount of layers with a remote CNOT
-            max_eprs = constants.MAX_VALUES["eprs"] # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
+            max_eprs = constants.MAX_VALUES["qubits_per_client"] - 1 # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
             
             eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection) # generate first set of EPR pairs
             depth_epr_map = [1 if i in self.layers_with_rcnot else 0 for i in range(q_depth)] # map of which layers have an EPR pair

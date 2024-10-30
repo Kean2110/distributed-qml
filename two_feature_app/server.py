@@ -73,7 +73,6 @@ class QMLServer:
     def load_params_from_checkpoint(self):
         checkpoint_path = os.path.join(self.output_path, "checkpoints")
         self.thetas, self.start_iteration, self.iter_losses, self.iter_accs = load_latest_checkpoint(checkpoint_path)
-        assert len(self.thetas) == (self.q_depth + 1) * self.n_qubits, "Thetas loaded from checkpoint do not match the config depth and number of qubits. Make sure that you run the same config as before, or set the load_checkpoint property to False!"
         logger.info(f"Loaded params {self.thetas}, iteration no {self.start_iteration}, losses {self.iter_losses} and accs {self.iter_accs} from checkpoint")
         self.iterations -= self.start_iteration
     
@@ -210,7 +209,7 @@ class QMLServer:
     def calculate_iter_results(self, results_client_1: list[list[Literal[0,1]]], results_client_2: list[list[Literal[0,1]]]) -> list[int]:
         predicted_labels = []
         for i in range(len(results_client_1)):
-            predicted_label = calculate_parity_from_shots(results_client_1[i], results_client_2[i])
+            predicted_label = calculate_parity_from_shots([results_client_1[i], results_client_2[i]])
             predicted_labels.append(predicted_label)
         return predicted_labels
     
