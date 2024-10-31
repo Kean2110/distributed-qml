@@ -22,8 +22,6 @@ class Client:
         self.socket_server = Socket(self.name, "server", socket_id=self.socket_id_with_server)
         self.epr_socket_other_client = EPRSocket(remote_app_name=other_client_name, epr_socket_id=constants.EPR_C1_C2_C1, remote_epr_socket_id=constants.EPR_C1_C2_C2)
         self.ctrl_qubit = ctrl_qubit
-        self.features = None
-        self.features_other_node = None
         self.test_features = None
         self.params = None
         self.max_qubits = constants.MAX_VALUES["eprs"] + 1
@@ -58,14 +56,12 @@ class Client:
     
     def run_iteration(self, test=False):
         if test:
-            features = self.test_features
+            features_array = self.test_features
         else:
-            features = receive_with_header(self.socket_server, constants.OWN_FEATURES, expected_dtype=np.ndarray)
+            features_array = receive_with_header(self.socket_server, constants.OWN_FEATURES, expected_dtype=np.ndarray)
         
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
-        
-        
         netqasm_connection = NetQASMConnection(
                 app_name=self.name,
                 epr_sockets=[self.epr_socket_other_client],
@@ -74,56 +70,78 @@ class Client:
         
         results = []
         with netqasm_connection:
-            for i, feature in enumerate(features):
-                logger.debug(f"{self.name} Running feature number {i} with value {feature}")
-                single_result = self.run_circuit_locally(feature, thetas, netqasm_connection)
+            for i, features in enumerate(features_array):
+                logger.debug(f"{self.name} Running feature number {i} with value(s) {features}")
+                single_result = self.run_circuit_locally(features, thetas, netqasm_connection)
                 results.append(single_result)
+        results = np.array(results)
         send_with_header(self.socket_server, results, constants.RESULTS)
 
     
-    def run_circuit_locally(self, feature: float, weights: list[float], netqasm_connection: NetQASMConnection):
-        
+    def run_circuit_locally(self, features: np.array, weights: np.array, netqasm_connection: NetQASMConnection):
+        '''
+        Runs the PQC on this client. 
+        This includes a feature map and an entanglement layer, that entangles with the other client as well.
+        '''
         n_shots = self.params["n_shots"]
         q_depth = self.params["q_depth"]
+        n_qubits = self.params["qubits_per_client"]
+        
+        # reshape weights
+        weights_reshaped = np.split(weights, n_qubits)
 
-        results_arr = []
+        results_arr = np.empty((n_qubits,n_shots), dtype=np.int8)
+
         for i in range(n_shots):
             logger.debug(f"{self.name} is executing shot number {i+1} of {n_shots} shots")
             
-            # create Qubit and apply future map
-            q = Qubit(netqasm_connection)
-            ry_feature_map(q, feature)
+            qubits = [Qubit(netqasm_connection) for _ in range(n_qubits)]
+            
+            # apply feature map
+            for q, qbit in enumerate(qubits):
+                ry_feature_map(qbit, features[q])
             
             # we can have max. 5 qubits active at once
-            # therefore we can only generate maximum of 4 EPR pairs at once
+            # therefore we can have max 5-n_qubits EPR pairs at once
             # if we run out of EPR pairs, we generate new ones
             n_required_eprs = len(self.layers_with_rcnot) # number of required epr pairs is the amount of layers with a remote CNOT
-            max_eprs = constants.MAX_VALUES["qubits_per_client"] - 1 # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
+            max_eprs = constants.MAX_VALUES["qubits_per_client"] - n_qubits # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
             
             eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection) # generate first set of EPR pairs
             depth_epr_map = [1 if i in self.layers_with_rcnot else 0 for i in range(q_depth)] # map of which layers have an EPR pair
             
-            for i, bit_val in enumerate(depth_epr_map):
-                logger.debug(f"{self.name} entered layer: {i}")
-                q.rot_Y(angle=weights[i])
+            for j, bit_val in enumerate(depth_epr_map):
+                logger.debug(f"{self.name} entered layer: {j}")
                 
-                if bit_val:
-                    if not eprs: # if no EPRs are left, generate new ones
-                        eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection)
-                    epr = eprs.pop() # pop EPR pair
-                    n_required_eprs -= 1 # reduce amount of required EPR pairs
-                    if self.ctrl_qubit:
-                        remote_cnot_control(self.socket_client, q, epr)
-                    else:
-                        remote_cnot_target(self.socket_client, q, epr)
+                # rotate qubits with thetas
+                for q, qbit in enumerate(qubits):
+                    qbit.rot_Y(angle=weights_reshaped[q][j])
+
+                    # apply local CNOT if it's not the "last" qubit of the node
+                    if q < len(qubits) - 1:
+                        qbit.cnot(qubits[q + 1])
                         
-            # apply one more rotation in the end
-            q.rot_Y(angle=weights[-1])        
+                    # if the RCNOT Map indicates a RCNOT, execute it (only for the "last qubit")
+                    if q == len(qubits) - 1 and bit_val:
+                        if not eprs: # if no EPRs are left, generate new ones
+                            eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection)
+                        epr = eprs.pop() # pop EPR pair
+                        n_required_eprs -= 1 # reduce amount of required EPR pairs
+                        if self.ctrl_qubit:
+                            remote_cnot_control(self.socket_client, qbit, epr)
+                        else:
+                            remote_cnot_target(self.socket_client, qbit, epr)
+          
+            qubit_results = []
+            # apply one more rotation in the end and measure
+            for q, qbit in enumerate(qubits):
+                qbit.rot_Y(angle=weights_reshaped[q][-1])
+                qubit_results.append(qbit.measure())    
             
-            # measure
-            result = q.measure()
             netqasm_connection.flush()
-            results_arr.append(result.value)
+            
+            for q, result in enumerate(qubit_results):
+                results_arr[q][i] = result.value
         return results_arr
     
             

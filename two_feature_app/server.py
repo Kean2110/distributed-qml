@@ -24,7 +24,6 @@ class QMLServer:
         self.random_seed = random_seed
         self.parameter_shift_delta = 0.001
         self.q_depth = q_depth
-        self.n_qubits = 2
         self.n_shots = n_shots
         self.batch_size = batch_size
         self.output_path = output_path
@@ -37,7 +36,7 @@ class QMLServer:
         self.thetas = initial_thetas
         
         # setup the dataset
-        self.setup_dataset(epochs, dataset_function, n_samples, test_size, random_seed, test_data)
+        self.setup_dataset(epochs, dataset_function, n_samples, test_size, random_seed, n_qubits, test_data)
         
         # load the params from the checkpoint
         if start_from_checkpoint:
@@ -48,9 +47,9 @@ class QMLServer:
         self.setup_model_saver()
     
     
-    def setup_dataset(self, epochs, dataset_function, n_samples, test_size, random_seed, test_data):
+    def setup_dataset(self, epochs, dataset_function, n_samples, test_size, random_seed, n_features, test_data):
         # load data and initialize iterations accordingly
-        self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, test_size, random_seed, test_data)
+        self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, n_features, test_size, random_seed, test_data)
         self.X_train_batched, self.y_train_batched = split_data_into_batches(self.X_train, self.y_train, self.batch_size)
         self.n_batches = len(self.y_train_batched)
         self.iterations = epochs * self.n_batches # iterations = epochs * number of batches
@@ -160,14 +159,13 @@ class QMLServer:
     
     def send_params_and_test_features(self):
         # create params dict
-        params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth}
+        params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth, "qubits_per_client": self.n_qubits // 2}
         # send params
         send_with_header(self.socket_client1, params_dict, constants.PARAMS)
         send_with_header(self.socket_client2, params_dict, constants.PARAMS)
         
         # split up test features
-        test_features_client_1 = self.X_test[:,0]
-        test_features_client_2 = self.X_test[:,1]
+        test_features_client_1, test_features_client_2 = np.hsplit(self.X_test, 2)
         
         # send test features to the clients
         send_with_header(self.socket_client1, test_features_client_1, constants.TEST_FEATURES)
@@ -175,8 +173,7 @@ class QMLServer:
 
     
     def send_features(self, features):
-        features_client_1 = features[:,0]
-        features_client_2 = features[:,1]
+        features_client_1, features_client_2 = np.hsplit(features, 2)
         
         # send their own features to the clients
         send_with_header(self.socket_client1, features_client_1, constants.OWN_FEATURES)
@@ -192,9 +189,7 @@ class QMLServer:
             self.send_features(features)
         
         # split params array in half
-        # params look like [client1, client2, client1, client2, ....]
-        params_client_1 = params[::2]
-        params_client_2 = params[1::2]
+        params_client_1, params_client_2 = np.hsplit(params, 2)
         # Send thetas to first client
         send_with_header(self.socket_client1, params_client_1, constants.THETAS)
         # Send thetas to second client
@@ -206,12 +201,20 @@ class QMLServer:
         return self.calculate_iter_results(iter_results_client_1, iter_results_client_2)
         
     
-    def calculate_iter_results(self, results_client_1: list[list[Literal[0,1]]], results_client_2: list[list[Literal[0,1]]]) -> list[int]:
-        predicted_labels = []
+    def calculate_iter_results(self, results_client_1: list[list[list[Literal[0,1]]]], results_client_2: list[list[list[Literal[0,1]]]]) -> list[int]:
+        '''
+        Calculate the results per iteration of both clients.
+        Results_client_X consists of a list that is n_features * n_qubits * n_shots and is a list of 0 and 1s, which are the measurement results of the qubit
+        '''
+        # results_client_X look like n_features * n_qubits * n_shots
+        predicted_labels_per_feature = []
+        # iterate over features
         for i in range(len(results_client_1)):
-            predicted_label = calculate_parity_from_shots([results_client_1[i], results_client_2[i]])
-            predicted_labels.append(predicted_label)
-        return predicted_labels
+            # concatenate both lists to get all qubit results
+            feature_results_split_into_qubits = results_client_1[i] + results_client_2[i]
+            predicted_label = calculate_parity_from_shots(feature_results_split_into_qubits)
+            predicted_labels_per_feature.append(predicted_label)
+        return predicted_labels_per_feature
     
     
     def calculate_loss(self, y_true, y_pred):
@@ -234,7 +237,7 @@ class QMLServer:
         self.socket_client2.send(constants.EXIT_INSTRUCTION)
     
 
-    def prepare_dataset(self, dataset_name: str, n_samples: int = 100, test_size: float = 0.2, random_seed : int = 42, test_dataset = None):
+    def prepare_dataset(self, dataset_name: str, n_samples: int = 100, n_features: int = 2, test_size: float = 0.2, random_seed : int = 42, test_dataset = None):
         """
         Loads a dataset and returns the split into test and train data.
         In case a test dataset is provided, only split up into data and labels
@@ -248,9 +251,11 @@ class QMLServer:
             return None, test_dataset["data"], None, test_dataset["labels"]
         
         if dataset_name.casefold() == "iris":
-            X, y = prepare_dataset_iris()
+            X, y = prepare_dataset_iris(n_features)
             return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
         elif dataset_name.casefold() == "moons":
+            if n_features != 2:
+                raise ValueError("The Moons dataset only supports two features")
             X, y = prepare_dataset_moons(n_samples)
             return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
         else:
