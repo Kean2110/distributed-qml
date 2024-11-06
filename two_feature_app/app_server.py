@@ -11,7 +11,7 @@ def main(app_config=None):
     config = ConfigParser(None, None) # reinstantiate in case we start our app with "netqasm simulate" (then main.py is not executed)
     output_path = os.path.join(constants.APP_BASE_PATH, "output", f"{config.run_id}")
     setup_output_folder(output_path, config.config_path)
-    setup_logging(config.enable_netqasm_logs, output_path)
+    setup_logging(config.enable_netqasm_logs, output_path, config.log_level)
     server_instance = server.QMLServer(config.n_qubits, config.epochs, config.initial_thetas, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, config.start_from_checkpoint, output_path)
     fname = f"netqasm_{server_instance.n_shots}shots_{server_instance.q_depth}qdepth_{config.n_samples}samples"
     try:
@@ -41,7 +41,7 @@ def main_test_only():
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     # setup logging
-    setup_logging(False, output_path)
+    setup_logging(False, output_path, "DEBUG")
     test_data = {"data": data["test_data"], "labels": data["test_labels"]}
     # initialize server with the test data
     server_instance = server.QMLServer(None, data["weights"], None, config["q_depth"], config["n_shots"], config["n_samples"], None, config["dataset_function"], False, output_path, test_data)
