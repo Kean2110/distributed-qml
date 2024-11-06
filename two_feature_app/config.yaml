@@ -1,6 +1,6 @@
 # initial_thetas: [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]
 epochs: 10
-enable_netqasm_logs: False
+log_level: "DEBUG"
 random_seed: 42
 q_depth: 4
 n_shots: 1
