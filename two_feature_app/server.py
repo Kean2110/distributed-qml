@@ -139,6 +139,9 @@ class QMLServer:
         ]
         
         res = minimize(method_to_optimize, self.thetas, options={'disp': True, 'maxiter': self.iterations}, method="COBYLA", constraints=constraints, callback=iteration_callback)
+        # save trained model
+        self.ms.save_intermediate_results(self.thetas, iteration, self.iter_losses, self.iter_accs, True)
+        
         # test run
         dict_test_report = self.test_gradient_free()
         
