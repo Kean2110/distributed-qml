@@ -90,7 +90,7 @@ class QMLServer:
         return initial_thetas
        
     @global_timer.timer
-    def train_gradient_free(self, file_name: str) -> dict:
+    def train_and_test_gradient_free(self, file_name: str) -> dict:
         iteration = self.start_iteration
         
         # function to optimize
@@ -132,7 +132,7 @@ class QMLServer:
         # send params and features to clients
         self.send_params_and_test_features()
 
-        # minimize gradient free
+        # define constraints
         constraints = [
             {'type': 'ineq', 'fun': lower_bound_constraint},
             {'type': 'ineq', 'fun': upper_bound_constraint}
