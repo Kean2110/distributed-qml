@@ -54,6 +54,8 @@ class Timer:
     
     
     def get_execution_averages(self):
+        if not self.execution_avg:
+            self.calculate_averages()
         return self.execution_avg
 
 
