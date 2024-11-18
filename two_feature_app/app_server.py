@@ -21,7 +21,7 @@ def main(app_config=None):
         report = server_instance.train_and_test_gradient_free(fname)
         # fill report with execution times
         report["execution_avgs"] = global_timer.get_execution_averages()
-        report["exeuction_times"] = global_timer.get_execution_times()
+        report["execution_times"] = global_timer.get_execution_times()
         save_classification_report(fname, output_path, report)
         # plot execution times
         plot_output_path = os.path.join(output_path, "plots")
@@ -78,7 +78,7 @@ def setup_output_folder(output_folder_path: str, config_path: str):
     
 def plot_execution_times(plot_output_path: str, execution_times: dict):
     for key, value in execution_times.items():
-        if value:
+        if len(value) > 1: # only plot if function is executed more than once
             filename = key + "_times.png"
             window_size = 10
             plot_data_with_moving_average(filename, plot_output_path, value, window_size)
