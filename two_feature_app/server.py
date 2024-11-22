@@ -62,6 +62,12 @@ class QMLServer:
         self.socket_client2 = Socket("server", "client2", socket_id=constants.SOCKET_SERVER_C2)
         
     
+    def delete_sockets(self):
+        # deletes classical socket connections
+        self.socket_client1.__del__()
+        self.socket_client2.__del__()
+        
+    
     def setup_model_saver(self):
         # initialize the model saver
         # if we didnt load losses from the checkpoint we dont have a best loss yet
@@ -178,6 +184,10 @@ class QMLServer:
 
     
     def send_features(self, features):
+        # reset sockets
+        self.delete_sockets()
+        self.setup_sockets()
+        
         features_client_1 = features[:,0]
         features_client_2 = features[:,1]
         
