@@ -72,6 +72,6 @@ def reset_socket(socket: Socket) -> Socket:
     remote_name = socket.remote_app_name
     id = socket.id
     socket.__del__()
-    new_socket = Socket(name, remote_name, id)
-    return new_socket
+    socket = Socket(name, remote_name, id)
+    return socket
     
