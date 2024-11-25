@@ -6,7 +6,7 @@ import os
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
 from utils.helper_functions import phase_gate, generate_chunks_with_max_size, split_array_by_nth_occurrences
-from utils.socket_communication import receive_with_header, send_as_str, send_with_header
+from utils.socket_communication import receive_with_header, send_as_str, send_with_header, reset_socket
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
 from utils.feature_maps import ry_feature_map
