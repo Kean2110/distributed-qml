@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from utils.config_parser import ConfigParser
 from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, upper_bound_constraint
 from utils.model_saver import ModelSaver
-from utils.socket_communication import send_with_header, receive_with_header
+from utils.socket_communication import send_with_header, receive_with_header, reset_socket
 from scipy.optimize import minimize
 from utils.timer import global_timer
 import numpy as np
