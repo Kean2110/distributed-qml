@@ -2,7 +2,6 @@ import math
 import numpy as np
 import utils.constants as constants
 import os
-#os.environ["NETQASM_SIMULATOR"] = "netsquid_single_thread"
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
 from utils.helper_functions import phase_gate, generate_chunks_with_max_size, split_array_by_nth_occurrences

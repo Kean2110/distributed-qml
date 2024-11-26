@@ -1,12 +1,13 @@
 import os
 import time
+import tracemalloc
 from typing import Literal, Union
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
 from sklearn.model_selection import train_test_split
 from utils.config_parser import ConfigParser
-from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, upper_bound_constraint, split_data_into_batches
+from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, take_snapshot_and_print_most_consuming, upper_bound_constraint, split_data_into_batches
 from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header, reset_socket
 from scipy.optimize import minimize
@@ -35,6 +36,7 @@ class QMLServer:
         self.start_iteration = 0
         self.iter_losses, self.iter_accs = [], []
         self.thetas = initial_thetas
+        self.c = ConfigParser()
         
         # setup the dataset
         self.setup_dataset(epochs, dataset_function, n_samples, test_size, random_seed, test_data)
@@ -88,7 +90,7 @@ class QMLServer:
         if initial_thetas is None:
             #initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
             np.random.seed(self.random_seed)
-            initial_thetas = np.random.uniform(constants.LOWER_BOUND_PARAMS, constants.UPPER_BOUND_PARAMS, (self.q_depth + 1) * self.n_qubits)
+            initial_thetas = np.random.uniform(self.c.lb_params, self.c.ub_params, (self.q_depth + 1) * self.n_qubits)
         else:
             # convert to numpy float values
             initial_thetas = np.array(initial_thetas, dtype=float)
@@ -113,6 +115,7 @@ class QMLServer:
             # run iteration on clients
             iter_results = self.run_iteration(params, features)
             SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
+            take_snapshot_and_print_most_consuming(10)
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
             # calculate the loss
@@ -133,18 +136,18 @@ class QMLServer:
         def iteration_callback(intermediate_params):
             logger.debug(f"Intermediate thetas: {intermediate_params}")
             
-        c = ConfigParser()
-        logger.info(c.get_config())
+        logger.info(self.c.get_config())
         # send params and features to clients
         self.send_params_and_test_features()
 
         # define constraints
         constraints = [
-            {'type': 'ineq', 'fun': lower_bound_constraint},
-            {'type': 'ineq', 'fun': upper_bound_constraint}
+            {'type': 'ineq', 'fun': lower_bound_constraint, 'args': (self.c.lb_params,)},
+            {'type': 'ineq', 'fun': upper_bound_constraint, 'args': (self.c.ub_params,)}
         ]
-        
+        tracemalloc.start()
         res = minimize(method_to_optimize, self.thetas, options={'disp': True, 'maxiter': self.iterations}, method="COBYLA", constraints=constraints, callback=iteration_callback)
+        tracemalloc.stop()
         # save trained model
         self.ms.save_intermediate_results(self.thetas, iteration, self.iter_losses, self.iter_accs, True)
         
