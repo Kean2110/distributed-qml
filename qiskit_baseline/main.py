@@ -127,7 +127,6 @@ def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
         return True
         
     # minimize gradient free
-    # minimize gradient free
     constraints = [
         {'type': 'ineq', 'fun': lower_bound_constraint},
         {'type': 'ineq', 'fun': upper_bound_constraint}

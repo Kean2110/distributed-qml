@@ -14,6 +14,7 @@ import random
 import math
 from sklearn.preprocessing import MinMaxScaler
 from utils.logger import logger
+from utils.config_parser import ConfigParser
 import utils.constants
 import tracemalloc
 
@@ -141,7 +142,8 @@ def prepare_dataset_iris(n_features = 2):
     X_filtered = X[filter_mask]
     y_filtered = iris.target[filter_mask]
     # min max scale features to range between 0 and 1
-    scaler = MinMaxScaler(feature_range=(utils.constants.LOWER_BOUND_INPUTS, utils.constants.UPPER_BOUND_INPUTS))
+    c = ConfigParser()
+    scaler = MinMaxScaler(feature_range=(c.lb_inputs, c.ub_inputs))
     X_scaled = scaler.fit_transform(X_filtered)
     return X_scaled, y_filtered
     
@@ -153,7 +155,8 @@ def prepare_dataset_moons(n_samples: int = 100) -> Tuple[NDArray[np.float_], NDA
     moons = make_moons(n_samples=n_samples)
     X = moons[0]
     y = moons[1]
-    scaler = MinMaxScaler(feature_range=(utils.constants.LOWER_BOUND_INPUTS, utils.constants.UPPER_BOUND_INPUTS))
+    c = ConfigParser()
+    scaler = MinMaxScaler(feature_range=(c.lb_inputs, c.ub_inputs))
     X_scaled = scaler.fit_transform(X)
     return X_scaled, y
 
@@ -204,17 +207,17 @@ def load_latest_input_checkpoint(checkpoint_dir: str):
         raise FileNotFoundError(f"No files found in {checkpoint_dir}")
     
     
-def lower_bound_constraint(x: Iterable):
-    return x - utils.constants.LOWER_BOUND_PARAMS
+def lower_bound_constraint(x: Iterable, lower_bound: float = utils.constants.LOWER_BOUND_PARAMS):
+    return x - lower_bound
 
 
-def upper_bound_constraint(x: Iterable):
-    return utils.constants.UPPER_BOUND_PARAMS - x
+def upper_bound_constraint(x: Iterable, upper_bound: float = utils.constants.UPPER_BOUND_PARAMS):
+    return upper_bound - x
 
 
 def take_snapshot_and_print_most_consuming(x: int):
     snapshot = tracemalloc.take_snapshot()
-    top_stats = snapshot.statistics('filename')
+    top_stats = snapshot.statistics('traceback')
     print(f"[ Top {x} ]")
     for stat in top_stats[:x]:
         print(stat)

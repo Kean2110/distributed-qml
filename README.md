@@ -25,11 +25,12 @@ The NetQASM App of the distributed quantum machine learning algorithm
 -app_ files - The NetQASM apps, two clients and a server
 -client.py - The Client class, instantiated by app_client1 and app_client2
 -server.py - The Server class, instantiated by app_server
--config.yaml files - Default config for the project. If no configs are provided in as console args or the app is run with "netqasm simulate", this config is used
+-config.yaml files - Default config for the project. If no configs are provided in as console args or the app is run with "netqasm simulate", this config is used. It can be used as a reference
 -config/ - Contains the configs
--utils/ - Contains util files for plotting, logging, parsing the config files, etc
 -output/ - The output where the runs outputs are stored, such as the log, the plots, the checkpoints, a copy of the config
 
+## Utils
+Extensive utils files for plotting, logging, config, saving, etc
 
 ## Two Feature Qiskit
 The Qiskit implementation and baseline of the NetQASM implementation
