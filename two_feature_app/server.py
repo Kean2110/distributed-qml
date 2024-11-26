@@ -103,7 +103,6 @@ class QMLServer:
             start_time = time.time()
             iter_results = self.run_iteration(params)
             SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
-            take_snapshot_and_print_most_consuming(10)
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
             # calculate the loss
