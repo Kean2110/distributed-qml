@@ -115,7 +115,6 @@ class QMLServer:
             # run iteration on clients
             iter_results = self.run_iteration(params, features)
             SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
-            take_snapshot_and_print_most_consuming(10)
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
             # calculate the loss
@@ -145,9 +144,7 @@ class QMLServer:
             {'type': 'ineq', 'fun': lower_bound_constraint, 'args': (self.c.lb_params,)},
             {'type': 'ineq', 'fun': upper_bound_constraint, 'args': (self.c.ub_params,)}
         ]
-        tracemalloc.start()
         res = minimize(method_to_optimize, self.thetas, options={'disp': True, 'maxiter': self.iterations}, method="COBYLA", constraints=constraints, callback=iteration_callback)
-        tracemalloc.stop()
         # save trained model
         self.ms.save_intermediate_results(self.thetas, iteration, self.iter_losses, self.iter_accs, True)
         
