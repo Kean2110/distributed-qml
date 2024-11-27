@@ -6,13 +6,14 @@ from netqasm.sdk import EPRSocket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
 from sklearn.model_selection import train_test_split
 from utils.config_parser import ConfigParser
-from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, upper_bound_constraint, split_data_into_batches
+from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, upper_bound_constraint, split_data_into_batches, take_snapshot_and_print_most_consuming
 from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header, reset_socket
 from scipy.optimize import minimize
 from utils.timer import global_timer
 import numpy as np
 import math
+import tracemalloc
 import utils.constants as constants
 from utils.logger import logger
 from utils.plotting import plot_accs_and_losses
@@ -107,12 +108,11 @@ class QMLServer:
             logger.info(f"Entering iteration {iteration + 1} of {self.iterations + self.start_iteration}")
             # run the model 
             start_time = time.time()
-            # get current batch
-            features = self.X_train_batched[iteration % self.n_batches]
             labels = self.y_train_batched[iteration % self.n_batches]
             # run iteration on clients
-            iter_results = self.run_iteration(params, features)
+            iter_results = self.run_iteration(params)
             SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
+            
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
             # calculate the loss
@@ -136,7 +136,7 @@ class QMLServer:
         c = ConfigParser()
         logger.info(c.get_config())
         # send params and features to clients
-        self.send_params_and_test_features()
+        self.send_params_and_features()
 
         # define constraints
         constraints = [
@@ -144,7 +144,9 @@ class QMLServer:
             {'type': 'ineq', 'fun': upper_bound_constraint}
         ]
         
+        tracemalloc.start()
         res = minimize(method_to_optimize, self.thetas, options={'disp': True, 'maxiter': self.iterations}, method="COBYLA", constraints=constraints, callback=iteration_callback)
+        tracemalloc.stop()
         # save trained model
         self.ms.save_intermediate_results(self.thetas, iteration, self.iter_losses, self.iter_accs, True)
         
@@ -160,19 +162,28 @@ class QMLServer:
     
     
     def test_gradient_free(self):
-        test_results = self.run_iteration(self.thetas, None, test=True)
+        test_results = self.run_iteration(self.thetas, test=True)
         # generate classification report
         dict_report = classification_report(y_true=self.y_test, y_pred=test_results, output_dict=True)
         print(dict_report)
         return dict_report
     
     
-    def send_params_and_test_features(self):
+    def send_params_and_features(self):
         # create params dict
-        params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth}
+        params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth, "batch_size": self.batch_size, "n_batches": self.n_batches}
         # send params
         send_with_header(self.socket_client1, params_dict, constants.PARAMS)
         send_with_header(self.socket_client2, params_dict, constants.PARAMS)
+        
+        # split up features for clients 1 and 2
+        # if we have only test features, this is set to None
+        features_client_1 = self.X_train[:, 0] if self.X_train is not None else None
+        features_client_2 = self.X_train[:, 1] if self.X_train is not None else None
+            
+        # send their own features to the clients
+        send_with_header(self.socket_client1, features_client_1, constants.OWN_FEATURES)
+        send_with_header(self.socket_client2, features_client_2, constants.OWN_FEATURES)
         
         # split up test features
         test_features_client_1 = self.X_test[:,0]
@@ -193,12 +204,11 @@ class QMLServer:
 
     
     @global_timer.timer
-    def run_iteration(self, params, features, test=False):
+    def run_iteration(self, params, test=False):
         if test:
             self.send_test_instructions()
         else:
             self.send_run_instructions()
-            self.send_features(features)
         
         # split params array in half
         # params look like [client1, client2, client1, client2, ....]

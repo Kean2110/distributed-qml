@@ -5,7 +5,7 @@ import os
 #os.environ["NETQASM_SIMULATOR"] = "netsquid_single_thread"
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
-from utils.helper_functions import phase_gate, generate_chunks_with_max_size, split_array_by_nth_occurrences
+from utils.helper_functions import phase_gate, generate_chunks_with_max_size, split_array_by_nth_occurrences, split_data_into_batches
 from utils.socket_communication import receive_with_header, send_as_str, send_with_header, reset_socket
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
@@ -26,6 +26,7 @@ class Client:
         self.features_other_node = None
         self.test_features = None
         self.params = None
+        self.iter = 0
         self.max_qubits = constants.MAX_VALUES["eprs"] + 1
         c = ConfigParser()
         self.layers_with_rcnot = c.layers_with_rcnot
@@ -33,38 +34,42 @@ class Client:
 
     def start_client(self):
         self.receive_starting_values_from_server()
+        
+        mock_labels = np.zeros((len(self.train_features)))
+        train_features_batched, _ = split_data_into_batches(self.train_features, mock_labels, self.params["batch_size"])
         # receive instructions from server
         while True:
             instruction = self.socket_server.recv(block=True)
             if instruction == constants.EXIT_INSTRUCTION:
                 break
             elif instruction == constants.RUN_INSTRUCTION:
-                self.run_iteration()
+                self.run_iteration(train_features_batched[self.iter % self.params["n_batches"]])
+                self.iter += 1
             elif instruction == constants.TEST_INSTRUCTION:
-                self.run_iteration(test=True)
+                self.run_iteration(features = None, test=True)
             else:
                 raise ValueError("Unregistered instruction received")
         
 
     def receive_starting_values_from_server(self):
-        # receive nshots and qdepth
+        # receive nshots and qdepth and n_batches
         self.params = receive_with_header(self.socket_server, constants.PARAMS)
         logger.info(f"{self.name} received params dict: {self.params}")
+        
+        self.train_features = receive_with_header(self.socket_server, constants.OWN_FEATURES)
+        logger.info(f"{self.name} received train features")
         
         # receive own test features
         self.test_features = receive_with_header(self.socket_server, constants.TEST_FEATURES)
         logger.info(f"{self.name} received test features")
     
     
-    def run_iteration(self, test=False):
+    def run_iteration(self, features, test=False):
         if test:
             features = self.test_features
-        else:
-            features = receive_with_header(self.socket_server, constants.OWN_FEATURES, expected_dtype=np.ndarray)
-        
+            
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
-        
         
         netqasm_connection = NetQASMConnection(
                 app_name=self.name,

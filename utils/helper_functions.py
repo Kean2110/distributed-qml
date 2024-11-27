@@ -15,7 +15,6 @@ import math
 from sklearn.preprocessing import MinMaxScaler
 from utils.logger import logger
 import utils.constants
-import tracemalloc
 
 from yaml import dump
 
