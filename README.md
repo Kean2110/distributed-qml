@@ -12,7 +12,7 @@ Distributed Quantum Machine Learning Master's Thesis
 6. "pip install -r requirements.txt"
 7. "pip install -e ." to install all local packages
 - To create a pip requirements.txt use pip list --format=freeze > requirements.txt
-- Watch out that you install the NetQASM and Squidasm versions that are specified in the readme
+- Watch out that you install the NetQASM and Squidasm versions that are specified in the requirements.txt
 
 # Repo structure
 

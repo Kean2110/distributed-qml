@@ -2,14 +2,13 @@ import os
 import time
 import tracemalloc
 from typing import Literal, Union
-from netqasm.sdk.external import NetQASMConnection, Socket
-from netqasm.sdk import EPRSocket
+from netqasm.sdk.external import Socket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
 from sklearn.model_selection import train_test_split
 from utils.config_parser import ConfigParser
-from utils.helper_functions import calculate_parity_from_shots, check_parity, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, take_snapshot_and_print_most_consuming, upper_bound_constraint, split_data_into_batches
+from utils.helper_functions import calculate_parity_from_shots, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, take_snapshot_and_print_most_consuming, upper_bound_constraint
 from utils.model_saver import ModelSaver
-from utils.socket_communication import send_with_header, receive_with_header, reset_socket
+from utils.socket_communication import send_with_header, receive_with_header
 from scipy.optimize import minimize
 from utils.timer import global_timer
 import numpy as np
@@ -30,9 +29,7 @@ class QMLServer:
         self.n_shots = n_shots
         self.output_path = output_path
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
-        self.X_train_batched, self.y_train_batched = None, None
         self.socket_client1, self.socket_client2 = None, None
-        self.n_batches, self.iterations = None, None
         self.start_iteration = 0
         self.iter_losses, self.iter_accs = [], []
         self.thetas = initial_thetas
@@ -51,9 +48,8 @@ class QMLServer:
     
     
     def setup_dataset(self, epochs, dataset_function, n_samples, test_size, random_seed, test_data):
-        # load data and initialize iterations accordingly
+        # load data
         self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, test_size, random_seed, test_data)
-        self.iterations = epochs # iterations = epochs
         
     
     def setup_sockets(self):
