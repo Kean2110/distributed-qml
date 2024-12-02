@@ -14,6 +14,7 @@ import math
 from sklearn.preprocessing import MinMaxScaler
 from utils.logger import logger
 import utils.constants
+import tracemalloc
 
 from yaml import dump
 
@@ -208,6 +209,14 @@ def lower_bound_constraint(x: Iterable):
 
 def upper_bound_constraint(x: Iterable):
     return utils.constants.UPPER_BOUND_PARAMS - x
+
+
+def take_snapshot_and_print_most_consuming(x: int):
+    snapshot = tracemalloc.take_snapshot()
+    top_stats = snapshot.statistics('traceback')
+    print(f"[ Top {x} ]")
+    for stat in top_stats[:x]:
+        print(stat)
         
 
 

@@ -31,9 +31,8 @@ SOCKET_C1_C2 = 2
 PROJECT_BASE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 # MAXIMUM Values defined
-# MAX DEPTH OF 4 RIGHT NOW BECAUSE ONLY 5 QUBITS ARE SUPPORTED!
 MAX_VALUES = {
-    "q_depth": 8,
+    "q_depth": 10,
     "eprs": 4
 }
 
