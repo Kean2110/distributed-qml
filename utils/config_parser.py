@@ -14,11 +14,13 @@ class ConfigParser:
     _lock = threading.Lock()
     epochs = 100
     enable_netqasm_logs = False
+    log_level = "DEBUG"
     random_seed = 42
     q_depth = 4
     n_shots = 32
     n_samples = 100
     test_size = 0.2
+    n_qubits = 2
     initial_thetas = None
     batch_size = int(n_samples * (1-test_size))
     # either MOONS or IRIS
@@ -26,6 +28,11 @@ class ConfigParser:
     start_from_checkpoint = False
     n_qubits = 2
     layers_with_rcnot = None
+    netqasm_simulator = constants.MULTI_THREAD_SIMULATOR
+    lb_params = constants.LOWER_BOUND_PARAMS
+    ub_params = constants.UPPER_BOUND_PARAMS
+    lb_inputs = constants.LOWER_BOUND_INPUTS
+    ub_inputs = constants.UPPER_BOUND_INPUTS
 
     def __new__(cls, config_path=None, run_id=None):
         if cls._instance is None:
@@ -53,7 +60,10 @@ class ConfigParser:
             self.config_path = config_file
         for key, value in self.config.items():
             ConfigParser.check_restrictions(key, value)
-            setattr(self, key, value)
+            if value:
+                setattr(self, key, value)
+        # set simulator env variable
+        os.environ["NETQASM_SIMULATOR"] = self.netqasm_simulator
         if not self.layers_with_rcnot:
             self.layers_with_rcnot = list(range(self.q_depth)) # per default all layers have a RCNOT
         ConfigParser.check_epr_list_restriction(self.layers_with_rcnot, self.q_depth)

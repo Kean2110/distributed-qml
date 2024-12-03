@@ -60,6 +60,41 @@ def check_parity(qubits: List[int]) -> Literal[0,1]:
     return parity
 
 
+def calculate_parity(counts: dict) -> list:
+    zeros = 0
+    ones = 0
+    for measure, count in counts.items():
+        if measure.count('1') % 2 == 0:
+            zeros += count
+        else:
+            ones += count
+    output_probs = [zeros / config.N_SHOTS, ones / config.N_SHOTS]
+    return output_probs.index(max(output_probs))
+
+
+def calculate_interpret_result(counts: dict, weights: list[float]):
+    possible_bit_strings = generate_bit_strings_of_n_bits(config.N_QUBITS)
+    interpret_sum = 0
+    for i, bit_string in enumerate(possible_bit_strings):
+        if bit_string in counts:
+            prob = counts[bit_string] / config.N_SHOTS
+            if len(weights) > 0:
+                interpret_sum += prob * weights[i]
+            else:
+                # if no weights are specified we just use the parity
+                parity = bit_string.count('1') % 2
+                parity_sign = parity if parity == 1 else -1
+                interpret_sum += prob * parity_sign
+    return 0 if interpret_sum <= 0 else 1
+
+
+def generate_bit_strings_of_n_bits(n_bits: int) -> list[str]:
+    bit_strings = []
+    for i in range(0, int(math.pow(2, n_bits))):
+        bit_strings.append(format(i, "0" + str(n_bits) + "b"))
+    return bit_strings
+
+
 def plot_losses(filename: str, losses) -> None:
     plt.plot(losses)
     plt.xlabel("iteration number")
@@ -149,13 +184,19 @@ def save_weights_config_test_data(weights, test_data, test_labels, filename):
         pickle.dump(save_dict, file)
         
 
-def lower_bound_constraint(x: Iterable) -> float:
-    return x - 0
+def lower_bound_constraint_with_split(x: Iterable, params_index: int) -> float:
+    thetas, interpret_weights = np.split(x, [params_index])
+    thetas_constraint = thetas - config.LB_THETAS
+    interpret_weights_constraint = interpret_weights - config.LB_INTERPRET
+    return np.concatenate((thetas_constraint, interpret_weights_constraint))
 
 
-def upper_bound_constraint(x: Iterable) -> float:
-    return math.pi*2 - x
+def upper_bound_constraint_with_split(x: Iterable, params_index: int) -> float:
+    thetas, interpret_weights = np.split(x, [params_index])
+    thetas_constraint = config.UB_THETAS - thetas
+    interpret_weights_constraint = config.UB_INTERPRET - interpret_weights
+    return np.concatenate((thetas_constraint, interpret_weights_constraint))
 
     
 if __name__ == "__main__":
-    pass
+    print(generate_bit_strings_of_n_bits(4))

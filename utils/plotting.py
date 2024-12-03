@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 import os
+import numpy as np
 
 def plot_losses(filename: str, output_dir: str, losses: list[float]) -> None:
         plt.plot(losses)
@@ -40,3 +41,17 @@ def plot_accs_and_losses(filename: str, output_dir: str, accuracy_scores: list[f
     if not os.path.exists(plot_directory):
         os.mkdir(plot_directory)
     plt.savefig(os.path.join(plot_directory, "acc_loss_" + filename))
+    
+    
+def plot_data_with_moving_average(filename: str, output_dir: str, data: list[float], window_size: int):
+	output_file = os.path.join(output_dir, filename)
+	plt.clf()
+	window = np.ones(window_size) / float(window_size)
+	data_padded = np.pad(data, window_size//2, mode="edge")
+	cumsum_vec = np.cumsum(data_padded)
+	moving_avg = (cumsum_vec[window_size:] - cumsum_vec[:-window_size]) / window_size
+	plt.figure(figsize=(15,5))
+	plt.plot(data, color ='blue', label='data', alpha=0.3)
+	plt.plot(moving_avg, color='red', label=f'{window_size}-Point Moving Average')
+	plt.legend()
+	plt.savefig(output_file)

@@ -67,3 +67,11 @@ def receive_with_header(channel: Union[Socket, BroadcastChannel], expected_heade
     return payload_evaluated
 
 
+def reset_socket(socket: Socket) -> Socket:
+    name = socket.app_name
+    remote_name = socket.remote_app_name
+    id = socket.id
+    socket.__del__()
+    socket = Socket(name, remote_name, id)
+    return socket
+    

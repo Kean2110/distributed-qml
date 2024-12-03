@@ -5,13 +5,12 @@ from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
 from sklearn.metrics import log_loss, accuracy_score, brier_score_loss, classification_report
 from sklearn.model_selection import train_test_split
-from helper_functions import check_parity, lower_bound_constraint, prepare_dataset_iris, prepare_dataset_moons, plot_acc_and_loss, plot_accuracy, plot_losses, save_circuit, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data, upper_bound_constraint
+from qiskit_baseline.helper_functions import calculate_parity, calculate_interpret_result, check_parity, lower_bound_constraint_with_split, plot_acc_and_loss, prepare_dataset_iris, prepare_dataset_moons, plot_accuracy, plot_losses, save_circuit, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data, upper_bound_constraint_with_split
 from scipy.optimize import minimize, Bounds
 import numpy as np
 import random
 import config
 import time
-
 
 
 def create_ZZ_feature_map(n_qubits, features):
@@ -74,41 +73,33 @@ def run_circuit(circuit: QuantumCircuit) -> list[int]:
     return counts
 
 
-def calculate_parity(counts: dict) -> list:
-    zeros = 0
-    ones = 0
-    for measure, count in counts.items():
-        if measure.count('1') % 2 == 0:
-            zeros += count
-        else:
-            ones += count
-    output_probs = [zeros / config.N_SHOTS, ones / config.N_SHOTS]
-    return output_probs.index(max(output_probs))
-
-
 def calculate_loss(y_true, y_pred):
     #loss = brier_score_loss(y_true, y_pred)
     loss = log_loss(y_true, y_pred, labels=[0,1])
     return loss
 
 
-def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
+def run_gradient_free(X, y, params, num_iter, n_qubits, q_depth):
     iteration = 0
     all_losses = []
     all_accs = []
     all_predictions = []
     all_weights = []
+    params_split_index = n_thetas = len(config.INITIAL_THETAS)
     # function to optimize
     # runs all data through our small network and computes the loss
     # returns the loss as the opitmization goal
     def method_to_optimize(params, samples, ys):
         nonlocal iteration
         print(f"Entering iteration {iteration}")
+        thetas, interpret_weights = np.split(params, [params_split_index]) # split up trained weights
         iter_results = np.empty(len(X))
         for i in range(len(samples)):
-            circuit = create_circuit(n_qubits, q_depth, samples[i], params)
+            circuit = create_circuit(n_qubits, q_depth, samples[i], thetas)
             counts = run_circuit(circuit)
-            predicted_label = calculate_parity(counts)
+            predicted_label = calculate_interpret_result(counts, interpret_weights)
+            predicted_label2 = calculate_parity(counts)
+            assert predicted_label == predicted_label2
             iter_results[i] = predicted_label
         all_predictions.append(iter_results)
         all_weights.append(params)
@@ -122,18 +113,17 @@ def run_gradient_free(X, y, thetas, num_iter, n_qubits, q_depth):
         return loss
     # callback function executed after every iteration of the minimize function        
     def iteration_callback(intermediate_params):
-        print("Intermediate thetas: ", intermediate_params)
+        print("Intermediate params: ", intermediate_params)
         print(f"Max theta: {max(intermediate_params)}, min theta: {min(intermediate_params)}")
         return True
         
     # minimize gradient free
-    # minimize gradient free
     constraints = [
-        {'type': 'ineq', 'fun': lower_bound_constraint},
-        {'type': 'ineq', 'fun': upper_bound_constraint}
+        {'type': 'ineq', 'fun': lower_bound_constraint_with_split, 'args': (params_split_index, )},
+        {'type': 'ineq', 'fun': upper_bound_constraint_with_split, 'args': (params_split_index, )}
     ]
     bounds = Bounds(0, 2*math.pi)
-    res = minimize(method_to_optimize, thetas, args=(X, y), options={'disp': True, 'maxiter': num_iter}, method=config.OPTIM_METHOD, callback=iteration_callback, constraints=constraints)
+    res = minimize(method_to_optimize, params, args=(X, y), options={'disp': True, 'maxiter': num_iter}, method=config.OPTIM_METHOD, callback=iteration_callback, constraints=constraints)
     save_losses_weights_predictions(f"debug_results_{config.OPTIM_METHOD}.csv", losses=all_losses, weights=all_weights, predictions=all_predictions)
     # return losses and accuracies for plotting
     # return last (optimized) weights for testing
@@ -149,12 +139,14 @@ def load_dataset(dataset_str, n_samples):
         raise ValueError("No valid dataset provided in config") 
 
 
-def test(X, y, thetas, n_qubits, q_depth):
+def test(X, y, params, n_qubits, q_depth):
     test_results = np.empty(len(X))
+    n_thetas = len(config.INITIAL_THETAS)
     for i in range(len(X)):
+        thetas, interpret_weights = np.split(params, [n_thetas])
         circuit = create_circuit(n_qubits, q_depth, X[i], thetas)
         counts = run_circuit(circuit)
-        predicted_label = calculate_parity(counts)
+        predicted_label = calculate_interpret_result(counts, interpret_weights)
         test_results[i] = predicted_label
     # generate classification report
     dict_report = classification_report(y_true=y, y_pred=test_results, output_dict=True)
@@ -165,7 +157,8 @@ def main():
     # load the dataset
     X, y = load_dataset(config.DATASET_FUNCTION, config.SAMPLES)
     X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=config.TEST_SIZE, random_state=config.RANDOM_SEED, stratify=y)
-    losses, accs, weights = run_gradient_free(X_train, y_train, config.INITIAL_THETAS, config.NUM_ITER, config.N_QUBITS, config.Q_DEPTH)
+    weights_to_optimize = np.concatenate((config.INITIAL_THETAS, config.INITIAL_INTERPRET_WEIGHTS))
+    losses, accs, weights = run_gradient_free(X_train, y_train, weights_to_optimize, config.NUM_ITER, config.N_QUBITS, config.Q_DEPTH)
     filename = f"qiskit_{config.DATASET_FUNCTION}_{config.OPTIM_METHOD}_{config.N_SHOTS}shots_{config.Q_DEPTH}depth_{config.SAMPLES}samples_{config.FEATURE_MAP}fmap_{config.N_QUBITS}qubits_{config.NUM_ITER}iters{config.FILENAME_ADDON}"
     plot_acc_and_loss("accs_loss_" + filename, accs, losses)
     # save weights

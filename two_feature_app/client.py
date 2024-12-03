@@ -2,11 +2,10 @@ import math
 import numpy as np
 import utils.constants as constants
 import os
-#os.environ["NETQASM_SIMULATOR"] = "netsquid_single_thread"
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
 from utils.helper_functions import phase_gate, generate_chunks_with_max_size, split_array_by_nth_occurrences
-from utils.socket_communication import receive_with_header, send_as_str, send_with_header
+from utils.socket_communication import receive_with_header, send_as_str, send_with_header, reset_socket
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
 from utils.feature_maps import ry_feature_map
@@ -24,7 +23,7 @@ class Client:
         self.ctrl_qubit = ctrl_qubit
         self.test_features = None
         self.params = None
-        self.max_qubits = constants.MAX_VALUES["eprs"] + 1
+        self.max_qubits = constants.MAX_VALUES["qubits_per_client"]
         c = ConfigParser()
         self.layers_with_rcnot = c.layers_with_rcnot
 
@@ -49,8 +48,12 @@ class Client:
         self.params = receive_with_header(self.socket_server, constants.PARAMS)
         logger.info(f"{self.name} received params dict: {self.params}")
         
+        # receive features
+        self.features = receive_with_header(self.socket_server, constants.OWN_FEATURES, expected_dtype=np.ndarray)
+        logger.info(f"{self.name} received own features")
+        
         # receive own test features
-        self.test_features = receive_with_header(self.socket_server, constants.TEST_FEATURES)
+        self.test_features = receive_with_header(self.socket_server, constants.TEST_FEATURES, expected_dtype=np.ndarray)
         logger.info(f"{self.name} received test features")
     
     
@@ -58,7 +61,7 @@ class Client:
         if test:
             features_array = self.test_features
         else:
-            features_array = receive_with_header(self.socket_server, constants.OWN_FEATURES, expected_dtype=np.ndarray)
+            features_array = self.features
         
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
@@ -105,7 +108,7 @@ class Client:
             # therefore we can have max 5-n_qubits EPR pairs at once
             # if we run out of EPR pairs, we generate new ones
             n_required_eprs = len(self.layers_with_rcnot) # number of required epr pairs is the amount of layers with a remote CNOT
-            max_eprs = constants.MAX_VALUES["qubits_per_client"] - n_qubits # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
+            max_eprs = self.max_qubits - n_qubits # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
             
             eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection) # generate first set of EPR pairs
             depth_epr_map = [1 if i in self.layers_with_rcnot else 0 for i in range(q_depth)] # map of which layers have an EPR pair

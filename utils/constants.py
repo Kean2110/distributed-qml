@@ -33,7 +33,7 @@ APP_BASE_PATH = os.getcwd()
 # MAXIMUM Values defined
 # MAX DEPTH OF 4 RIGHT NOW BECAUSE ONLY 5 QUBITS ARE SUPPORTED!
 MAX_VALUES = {
-    "q_depth": 8,
+    "q_depth": 12,
     "eprs": 4,
     "qubits_per_client": 5
 }
@@ -54,3 +54,6 @@ UPPER_BOUND_PARAMS = 2 * math.pi
 
 LOWER_BOUND_INPUTS = 0 + BOUND_EPSILON
 UPPER_BOUND_INPUTS = 1
+
+SINGLE_THREAD_SIMULATOR = "netsquid_single_thread"
+MULTI_THREAD_SIMULATOR = "netsquid"
