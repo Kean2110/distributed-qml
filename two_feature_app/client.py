@@ -115,7 +115,7 @@ class Client:
             max_eprs = self.max_qubits - n_qubits # maximum value of EPR pairs that can be generated at once (due to hardware limitations)
             
             eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection) # generate first set of EPR pairs
-            depth_epr_map = [1 if i in self.layers_with_rcnot else 0 for i in range(q_depth)] # map of which layers have an EPR pair
+            depth_epr_map = [1 if d in self.layers_with_rcnot else 0 for d in range(q_depth)] # map of which layers have an EPR pair
             
             for j, bit_val in enumerate(depth_epr_map):
                 logger.debug(f"{self.name} entered layer: {j}")
