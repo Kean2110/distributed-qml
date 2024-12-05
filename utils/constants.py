@@ -35,7 +35,7 @@ APP_BASE_PATH = os.getcwd()
 MAX_VALUES = {
     "q_depth": 12,
     "eprs": 4,
-    "qubits_per_client": 5
+    "qubits_per_client": 8
 }
 
 MIN_VALUES = {
