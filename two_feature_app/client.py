@@ -4,6 +4,7 @@ import utils.constants as constants
 import os
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
+from netqasm.sdk.build_types import HardwareConfig, GenericHardwareConfig
 from utils.helper_functions import phase_gate, generate_chunks_with_max_size, split_array_by_nth_occurrences
 from utils.socket_communication import receive_with_header, send_as_str, send_with_header, reset_socket
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
@@ -65,10 +66,13 @@ class Client:
         
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
+        hw_config = GenericHardwareConfig(self.max_qubits)
+        
         netqasm_connection = NetQASMConnection(
                 app_name=self.name,
                 epr_sockets=[self.epr_socket_other_client],
-                max_qubits=self.max_qubits
+                max_qubits=self.max_qubits,
+                hardware_config = hw_config
         )
         
         results = []
