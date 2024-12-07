@@ -42,7 +42,6 @@ def teleport_qubit(epr_socket, classical_socket, netqasm_connection, feature, th
     classical_socket.send_structured(StructuredMessage("Corrections", (m1,m2)))
 
 
-@global_timer.timer
 def remote_cnot_control(classical_socket: Socket, control_qubit: Qubit, epr_qubit: Qubit):
     conn = epr_qubit.connection
     # CNOT between ctrl and epr
@@ -65,7 +64,6 @@ def remote_cnot_control(classical_socket: Socket, control_qubit: Qubit, epr_qubi
         conn.flush()
 
 
-@global_timer.timer
 def remote_cnot_target(classical_socket: Socket, target_qubit: Qubit, epr_qubit: Qubit):
 
     # receive measurement result from EPR pair from controller
