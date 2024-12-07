@@ -9,10 +9,11 @@ test_size: 0.2
 dataset_function: "MOONS" # either MOONS or IRIS
 start_from_checkpoint: False
 n_qubits: 2
+use_default_network_config: False
 #layers_with_rcnot: [0,1,2,3]
 #lb_inputs: 0
 #ub_inputs: 1
 #lb_params: None # None means using default
 #ub_params: None # None means using default
-netqasm_simulator: "netsquid_single_thread"
+#netqasm_simulator: "netsquid_single_thread"
 

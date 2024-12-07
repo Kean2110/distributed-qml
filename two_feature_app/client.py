@@ -24,8 +24,8 @@ class Client:
         self.ctrl_qubit = ctrl_qubit
         self.test_features = None
         self.params = None
-        self.max_qubits = constants.MAX_VALUES["qubits_per_client"]
         c = ConfigParser()
+        self.max_qubits = c.max_qubits_per_qpu
         self.layers_with_rcnot = c.layers_with_rcnot
 
 
@@ -67,7 +67,6 @@ class Client:
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
         hw_config = GenericHardwareConfig(self.max_qubits)
-        
         netqasm_connection = NetQASMConnection(
                 app_name=self.name,
                 epr_sockets=[self.epr_socket_other_client],
@@ -108,8 +107,6 @@ class Client:
             for q, qbit in enumerate(qubits):
                 ry_feature_map(qbit, features[q])
             
-            # we can have max. 5 qubits active at once
-            # therefore we can have max 5-n_qubits EPR pairs at once
             # if we run out of EPR pairs, we generate new ones
             n_required_eprs = len(self.layers_with_rcnot) # number of required epr pairs is the amount of layers with a remote CNOT
             max_eprs = self.max_qubits - n_qubits # maximum value of EPR pairs that can be generated at once (due to hardware limitations)

@@ -1,3 +1,4 @@
+from ctypes import util
 import warnings
 import os
 from netqasm.runtime.application import default_app_instance
@@ -53,15 +54,14 @@ def read_params_from_yaml():
     return inputs
 
 
-def create_network_config(noise_type: NoiseType = NoiseType.NoNoise):
+def create_network_config(noise_type: NoiseType = NoiseType.NoNoise, required_qubits_per_qpu: int = 5) -> NetworkConfig:
     links = []
     
-    node_server = Node(name="server", hardware=QuantumHardware.Generic, qubits=[], gate_fidelity=1)
-    node_client1 = Node(name="client1", hardware=QuantumHardware.Generic, qubits = [Qubit(id=i, t1=0, t2=0) for i in range(utils.constants.MAX_VALUES["qubits_per_client"])], gate_fidelity=1)
-    node_client2 = Node(name="client2", hardware=QuantumHardware.Generic, qubits = [Qubit(id=i, t1=0, t2=0) for i in range(utils.constants.MAX_VALUES["qubits_per_client"])], gate_fidelity=1)
+    node_server = Node(name=utils.constants.NODE_NAMES[0], hardware=utils.constants.DEFAULT_HW, qubits=[], gate_fidelity=1)
+    node_client1 = Node(name=utils.constants.NODE_NAMES[1], hardware=utils.constants.DEFAULT_HW, qubits = [Qubit(id=i, t1=0, t2=0) for i in range(required_qubits_per_qpu)], gate_fidelity=1)
+    node_client2 = Node(name=utils.constants.NODE_NAMES[2], hardware=utils.constants.DEFAULT_HW, qubits = [Qubit(id=i, t1=0, t2=0) for i in range(required_qubits_per_qpu)], gate_fidelity=1)
     
     nodes = [node_server, node_client1, node_client2]
-    
     
     for node in nodes:
         node_name = node.name
@@ -98,11 +98,16 @@ def create_app(test_only=False):
     
     try:
         if test_only:
-            network_config = create_network_config()
+            network_config = default_network_config(utils.constants.NODE_NAMES, utils.constants.DEFAULT_HW)
         else:
             c = setup_config()
-            network_config = create_network_config(c.noise_model)
-        
+            if c.use_default_network_config:
+                network_config = default_network_config(utils.constants.NODE_NAMES, utils.constants.DEFAULT_HW)
+            else:
+                required_qubits_per_qpu = len(c.layers_with_rcnot) + int(c.n_qubits / 2)
+                c.max_qubits_per_qpu = required_qubits_per_qpu
+                network_config = create_network_config(c.noise_model, required_qubits_per_qpu)
+            
         simulate_application(
             app_instance,
             use_app_config=False,

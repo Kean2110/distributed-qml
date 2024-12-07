@@ -57,3 +57,6 @@ UPPER_BOUND_INPUTS = 1
 
 SINGLE_THREAD_SIMULATOR = "netsquid_single_thread"
 MULTI_THREAD_SIMULATOR = "netsquid"
+
+NODE_NAMES = ["server", "client1", "client2"]
+DEFAULT_HW = QuantumHardware.Generic
