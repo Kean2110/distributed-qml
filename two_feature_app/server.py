@@ -25,7 +25,6 @@ class QMLServer:
         self.random_seed = random_seed
         self.parameter_shift_delta = 0.001
         self.q_depth = q_depth
-        self.n_qubits = 2
         self.n_shots = n_shots
         self.output_path = output_path
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
@@ -36,7 +35,7 @@ class QMLServer:
         self.c = ConfigParser()
         
         # setup the dataset
-        self.setup_dataset(epochs, dataset_function, n_samples, test_size, random_seed, test_data)
+        self.setup_dataset(dataset_function, n_samples, n_qubits, test_size, random_seed, test_data)
         
         # load the params from the checkpoint
         if start_from_checkpoint:
@@ -47,9 +46,9 @@ class QMLServer:
         self.setup_model_saver()
     
     
-    def setup_dataset(self, epochs, dataset_function, n_samples, test_size, random_seed, test_data):
+    def setup_dataset(self, dataset_function, n_samples, n_qubits, test_size, random_seed, test_data):
         # load data
-        self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, test_size, random_seed, test_data)
+        self.X_train, self.X_test, self.y_train, self.y_test = self.prepare_dataset(dataset_function, n_samples, n_qubits, test_size, random_seed, test_data)
         
     
     def setup_sockets(self):
@@ -76,7 +75,6 @@ class QMLServer:
     def initialize_thetas(self, initial_thetas: list[Union[int, float]]) -> np.ndarray:
         # if no initial values initialize randomly
         if initial_thetas is None:
-            #initial_thetas = np.random.rand((self.q_depth + 1) * self.n_qubits)
             np.random.seed(self.random_seed)
             initial_thetas = np.random.uniform(self.c.lb_params, self.c.ub_params, (self.q_depth + 1) * self.n_qubits)
         else:
@@ -97,6 +95,7 @@ class QMLServer:
             logger.info(f"Entering iteration {iteration + 1} of {self.iterations + self.start_iteration}")
             # run the model 
             start_time = time.time()
+            # run iteration on clients
             iter_results = self.run_iteration(params)
             SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
             end_time = time.time()
@@ -153,32 +152,23 @@ class QMLServer:
         print(dict_report)
         return dict_report
     
-  
+    
     def send_params_and_features(self):
         # create params dict
-        params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth}
+        params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth, "qubits_per_client": self.n_qubits // 2}
         # send params
         send_with_header(self.socket_client1, params_dict, constants.PARAMS)
         send_with_header(self.socket_client2, params_dict, constants.PARAMS)
         
-        # split up features for clients 1 and 2
-        # if we have only test features, this is set to None
-        features_client_1 = self.X_train[:, 0] if self.X_train is not None else None
-        features_client_2 = self.X_train[:, 1] if self.X_train is not None else None
-            
-        # send their own features to the clients
-        send_with_header(self.socket_client1, features_client_1, constants.OWN_FEATURES)
-        send_with_header(self.socket_client2, features_client_2, constants.OWN_FEATURES)
-        
-        # send their counterparts features (because of ZZ Feature Map)
-        send_with_header(self.socket_client1, features_client_2, constants.OTHER_FEATURES)
-        send_with_header(self.socket_client2, features_client_1, constants.OTHER_FEATURES)
+        # split up train features and send to clients
+        train_features_client_1, train_features_client_2 = np.hsplit(self.X_train, 2) if self.X_train is not None else None
+        send_with_header(self.socket_client1, train_features_client_1, constants.OWN_FEATURES)
+        send_with_header(self.socket_client2, train_features_client_2, constants.OWN_FEATURES)
         
         # split up test features
-        test_features_client_1 = self.X_test[:,0]
-        test_features_client_2 = self.X_test[:,1]
+        test_features_client_1, test_features_client_2 = np.hsplit(self.X_test, 2)
         
-        # send test features to the clients
+        # splut up test features and send to clients
         send_with_header(self.socket_client1, test_features_client_1, constants.TEST_FEATURES)
         send_with_header(self.socket_client2, test_features_client_2, constants.TEST_FEATURES)
 
@@ -191,9 +181,7 @@ class QMLServer:
             self.send_run_instructions()
         
         # split params array in half
-        # params look like [client1, client2, client1, client2, ....]
-        params_client_1 = params[::2]
-        params_client_2 = params[1::2]
+        params_client_1, params_client_2 = np.hsplit(params, 2)
         # Send thetas to first client
         send_with_header(self.socket_client1, params_client_1, constants.THETAS)
         # Send thetas to second client
@@ -205,12 +193,20 @@ class QMLServer:
         return self.calculate_iter_results(iter_results_client_1, iter_results_client_2)
         
     
-    def calculate_iter_results(self, results_client_1: list[list[Literal[0,1]]], results_client_2: list[list[Literal[0,1]]]) -> list[int]:
-        predicted_labels = []
+    def calculate_iter_results(self, results_client_1: list[list[list[Literal[0,1]]]], results_client_2: list[list[list[Literal[0,1]]]]) -> list[int]:
+        '''
+        Calculate the results per iteration of both clients.
+        Results_client_X consists of a list that is n_features * n_qubits * n_shots and is a list of 0 and 1s, which are the measurement results of the qubit
+        '''
+        # results_client_X look like n_features * n_qubits * n_shots
+        predicted_labels_per_feature = []
+        # iterate over features
         for i in range(len(results_client_1)):
-            predicted_label = calculate_parity_from_shots([results_client_1[i], results_client_2[i]])
-            predicted_labels.append(predicted_label)
-        return predicted_labels
+            # concatenate both lists to get all qubit results
+            feature_results_split_into_qubits = results_client_1[i] + results_client_2[i]
+            predicted_label = calculate_parity_from_shots(feature_results_split_into_qubits)
+            predicted_labels_per_feature.append(predicted_label)
+        return predicted_labels_per_feature
     
     
     def calculate_loss(self, y_true, y_pred):
@@ -233,7 +229,7 @@ class QMLServer:
         self.socket_client2.send(constants.EXIT_INSTRUCTION)
     
 
-    def prepare_dataset(self, dataset_name: str, n_samples: int = 100, test_size: float = 0.2, random_seed : int = 42, test_dataset = None):
+    def prepare_dataset(self, dataset_name: str, n_samples: int = 100, n_features: int = 2, test_size: float = 0.2, random_seed : int = 42, test_dataset = None):
         """
         Loads a dataset and returns the split into test and train data.
         In case a test dataset is provided, only split up into data and labels
@@ -247,9 +243,11 @@ class QMLServer:
             return None, test_dataset["data"], None, test_dataset["labels"]
         
         if dataset_name.casefold() == "iris":
-            X, y = prepare_dataset_iris()
+            X, y = prepare_dataset_iris(n_features)
             return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
         elif dataset_name.casefold() == "moons":
+            if n_features != 2:
+                raise ValueError("The Moons dataset only supports two features")
             X, y = prepare_dataset_moons(n_samples)
             return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
         else:

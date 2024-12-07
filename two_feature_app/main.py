@@ -1,6 +1,8 @@
+from ctypes import util
 import warnings
 import os
 from netqasm.runtime.application import default_app_instance
+from netqasm.runtime.interface.config import default_network_config, NetworkConfig, Node, Link, QuantumHardware, Qubit, NoiseType
 from netqasm.sdk.external import simulate_application
 from utils.config_parser import ConfigParser
 import glob
@@ -9,6 +11,7 @@ import logging
 import os
 import sys
 import traceback
+import utils.constants
 import app_server
 import app_client1
 import app_client2
@@ -31,6 +34,7 @@ def setup_config():
         warnings.warn("No config ID provided, using default 'config.yaml' config")
         config_path = "config.yaml"
         c = ConfigParser(config_path, None)
+    return c
         
 
 def read_params_from_yaml():
@@ -50,6 +54,34 @@ def read_params_from_yaml():
     return inputs
 
 
+def create_network_config(noise_type: NoiseType = NoiseType.NoNoise, required_qubits_per_qpu: int = 5) -> NetworkConfig:
+    links = []
+    
+    node_server = Node(name=utils.constants.NODE_NAMES[0], hardware=utils.constants.DEFAULT_HW, qubits=[], gate_fidelity=1)
+    node_client1 = Node(name=utils.constants.NODE_NAMES[1], hardware=utils.constants.DEFAULT_HW, qubits = [Qubit(id=i, t1=0, t2=0) for i in range(required_qubits_per_qpu)], gate_fidelity=1)
+    node_client2 = Node(name=utils.constants.NODE_NAMES[2], hardware=utils.constants.DEFAULT_HW, qubits = [Qubit(id=i, t1=0, t2=0) for i in range(required_qubits_per_qpu)], gate_fidelity=1)
+    
+    nodes = [node_server, node_client1, node_client2]
+    
+    for node in nodes:
+        node_name = node.name
+        for other_node in nodes:
+            other_node_name = other_node.name
+            if other_node_name == node_name:
+                continue
+            link = Link(
+                name=f"link_{node_name}_{other_node_name}",
+                node_name1=node_name,
+                node_name2=other_node_name,
+                noise_type=noise_type,
+                fidelity=1,
+            )
+            links += [link]
+    
+    network_config = NetworkConfig(nodes, links)
+    return network_config
+
+
 def create_app(test_only=False):
     if test_only:
         server_main = app_server.main_test_only
@@ -65,14 +97,23 @@ def create_app(test_only=False):
     )
     
     try:
-        if not test_only:
-            setup_config()
-        
+        if test_only:
+            network_config = default_network_config(utils.constants.NODE_NAMES, utils.constants.DEFAULT_HW)
+        else:
+            c = setup_config()
+            if c.use_default_network_config:
+                network_config = default_network_config(utils.constants.NODE_NAMES, utils.constants.DEFAULT_HW)
+            else:
+                required_qubits_per_qpu = len(c.layers_with_rcnot) + int(c.n_qubits / 2)
+                c.max_qubits_per_qpu = min(required_qubits_per_qpu, utils.constants.MAX_VALUES["qubits_per_client"])
+                network_config = create_network_config(c.noise_model, c.max_qubits_per_qpu)
+            
         simulate_application(
             app_instance,
             use_app_config=False,
             post_function=None,
-            enable_logging=False
+            enable_logging=False,
+            network_cfg=network_config
         )
     except:
         traceback.print_exc()

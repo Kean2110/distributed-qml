@@ -3,6 +3,7 @@ import yaml
 import uuid
 import threading
 
+from netqasm.runtime.interface.config import NoiseType, _DEFAULT_NUM_QUBITS
 from utils import constants
 
 class ConfigParser:
@@ -22,15 +23,20 @@ class ConfigParser:
     test_size = 0.2
     n_qubits = 2
     initial_thetas = None
+    batch_size = int(n_samples * (1-test_size))
     # either MOONS or IRIS
     dataset_function = "MOONS"
     start_from_checkpoint = False
+    n_qubits = 2
     layers_with_rcnot = None
     netqasm_simulator = constants.MULTI_THREAD_SIMULATOR
+    noise_model = NoiseType.NoNoise
     lb_params = constants.LOWER_BOUND_PARAMS
     ub_params = constants.UPPER_BOUND_PARAMS
     lb_inputs = constants.LOWER_BOUND_INPUTS
     ub_inputs = constants.UPPER_BOUND_INPUTS
+    use_default_network_config = False
+    max_qubits_per_qpu = _DEFAULT_NUM_QUBITS
 
     def __new__(cls, config_path=None, run_id=None):
         if cls._instance is None:
@@ -62,6 +68,7 @@ class ConfigParser:
                 setattr(self, key, value)
         # set simulator env variable
         os.environ["NETQASM_SIMULATOR"] = self.netqasm_simulator
+        # specify layers with a remote CNOT
         if not self.layers_with_rcnot:
             self.layers_with_rcnot = list(range(self.q_depth)) # per default all layers have a RCNOT
         ConfigParser.check_epr_list_restriction(self.layers_with_rcnot, self.q_depth)

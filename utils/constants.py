@@ -1,5 +1,6 @@
 import math
 import os
+from netqasm.runtime.interface.config import QuantumHardware
 
 # Instructions
 EXIT_INSTRUCTION = "EXIT"
@@ -35,7 +36,7 @@ APP_BASE_PATH = os.getcwd()
 MAX_VALUES = {
     "q_depth": 12,
     "eprs": 4,
-    "qubits_per_client": 5
+    "qubits_per_client": 8
 }
 
 MIN_VALUES = {
@@ -57,3 +58,6 @@ UPPER_BOUND_INPUTS = 1
 
 SINGLE_THREAD_SIMULATOR = "netsquid_single_thread"
 MULTI_THREAD_SIMULATOR = "netsquid"
+
+NODE_NAMES = ["server", "client1", "client2"]
+DEFAULT_HW = QuantumHardware.Generic
