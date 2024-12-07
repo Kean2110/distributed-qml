@@ -183,11 +183,11 @@ def load_latest_checkpoint(checkpoint_dir: str):
         with open(latest_checkpoint, 'rb') as file:
             # load the data and return the params, last iteration, losses and accs
             data = pickle.load(file)
-            return data["params"], data["iter"], data["losses"], data["accs"]
+            return data["params"], data["iter"], data["losses"], data["accs"], data["exec_times"]
     except (ValueError, FileNotFoundError, KeyError) as e:
         logger.warning("No checkpoint found, returning None")
         # return None and 0 if no file is found
-        return None, 0, [], []
+        return None, 0, [], [], {}
     
     
 def load_latest_input_checkpoint(checkpoint_dir: str):

@@ -67,9 +67,10 @@ class QMLServer:
     
     def load_params_from_checkpoint(self):
         checkpoint_path = os.path.join(self.output_path, "checkpoints")
-        self.thetas, self.start_iteration, self.iter_losses, self.iter_accs = load_latest_checkpoint(checkpoint_path)
-        logger.info(f"Loaded params {self.thetas}, iteration no {self.start_iteration}, losses {self.iter_losses} and accs {self.iter_accs} from checkpoint")
+        self.thetas, self.start_iteration, self.iter_losses, self.iter_accs, exec_times = load_latest_checkpoint(checkpoint_path)
+        logger.info(f"Loaded params {self.thetas}, iteration no {self.start_iteration}, losses {self.iter_losses}, accs {self.iter_accs} and execution times from checkpoint")
         self.iterations -= self.start_iteration
+        global_timer.set_execution_times(exec_times)
     
         
     def initialize_thetas(self, initial_thetas: list[Union[int, float]]) -> np.ndarray:
@@ -111,7 +112,7 @@ class QMLServer:
             # count up iteration
             iteration += 1
             # save params with modelsaver
-            self.ms.save_intermediate_results(params, iteration, self.iter_losses, self.iter_accs)
+            self.ms.save_intermediate_results(params, iteration, self.iter_losses, self.iter_accs, global_timer.get_execution_times())
             return loss
                 
         # callback function executed after every iteration of the minimize function        
@@ -132,7 +133,7 @@ class QMLServer:
         res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.iterations}, method="COBYLA", constraints=constraints, callback=iteration_callback)
         
         # save trained model
-        self.ms.save_intermediate_results(self.thetas, iteration, self.iter_losses, self.iter_accs, True)
+        self.ms.save_intermediate_results(self.thetas, iteration, self.iter_losses, self.iter_accs, global_timer.get_execution_times(), True)
         
         # test run
         dict_test_report = self.test_gradient_free()

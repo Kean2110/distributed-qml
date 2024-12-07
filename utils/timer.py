@@ -45,6 +45,10 @@ class Timer:
         return self.execution_times
     
     
+    def set_execution_times(self, times: dict):
+        self.execution_times = times
+        
+    
     def get_execution_average(self, key):
         try:
             return self.execution_avg[key]
