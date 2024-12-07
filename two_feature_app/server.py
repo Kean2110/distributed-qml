@@ -243,12 +243,12 @@ class QMLServer:
             return None, test_dataset["data"], None, test_dataset["labels"]
         
         if dataset_name.casefold() == "iris":
-            X, y = prepare_dataset_iris(n_features)
+            X, y = prepare_dataset_iris(n_features, self.c.lb_inputs, self.c.ub_inputs)
             return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
         elif dataset_name.casefold() == "moons":
             if n_features != 2:
                 raise ValueError("The Moons dataset only supports two features")
-            X, y = prepare_dataset_moons(n_samples)
+            X, y = prepare_dataset_moons(n_samples, self.c.lb_inputs, self.c.ub_inputs, random_seed)
             return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
         else:
             raise ValueError("Inappropriate dataset provided: ", dataset_name)    

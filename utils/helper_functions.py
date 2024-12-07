@@ -1,5 +1,6 @@
 import functools
 import glob
+from multiprocessing.spawn import prepare
 import os
 import pickle
 import shutil
@@ -128,11 +129,11 @@ def split_data_into_batches(data: List[Tuple[float, float]], labels: List[int], 
     return first_batches, first_labels
 
 
-def prepare_dataset_iris(n_features = 2):
+def prepare_dataset_iris(n_features: int = 2, lower_bound: float = 0.0, upper_bound: float = 1.0):
     """
     Loads the Iris dataset from scikit-learn, filters out the first two features from each sample
     and transforms it into a binary classification problem by ommitting one class.
-    Then the features are normalized fit in the range [0,1]
+    Then the features are normalized fit in the range [lb,ub]
     """
     iris = load_iris()
     # reduce number of features
@@ -141,22 +142,20 @@ def prepare_dataset_iris(n_features = 2):
     filter_mask = np.isin(iris.target, [0,1])
     X_filtered = X[filter_mask]
     y_filtered = iris.target[filter_mask]
-    # min max scale features to range between 0 and 1
-    c = ConfigParser()
-    scaler = MinMaxScaler(feature_range=(c.lb_inputs, c.ub_inputs))
+    # min max scale features to range between lb and ub
+    scaler = MinMaxScaler(feature_range=(lower_bound, upper_bound))
     X_scaled = scaler.fit_transform(X_filtered)
     return X_scaled, y_filtered
     
     
-def prepare_dataset_moons(n_samples: int = 100) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
+def prepare_dataset_moons(n_samples: int = 100, lower_bound: float = 0.0, upper_bound: float = 1.0, random_seed: int = 42) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
     """
     Loads the moons dataset
     """
-    moons = make_moons(n_samples=n_samples)
+    moons = make_moons(n_samples=n_samples, random_state=random_seed)
     X = moons[0]
     y = moons[1]
-    c = ConfigParser()
-    scaler = MinMaxScaler(feature_range=(c.lb_inputs, c.ub_inputs))
+    scaler = MinMaxScaler(feature_range=(lower_bound, upper_bound))
     X_scaled = scaler.fit_transform(X)
     return X_scaled, y
 
@@ -224,7 +223,9 @@ def take_snapshot_and_print_most_consuming(x: int):
 
 
 if __name__ == '__main__':
-    print(calculate_parity_from_shots([[1,1,0], [0,0,0], [0,0,0]]))
+    X, y = prepare_dataset_iris()
+    print(X)
+    #print(calculate_parity_from_shots([[1,1,0], [0,0,0], [0,0,0]]))
     
     
     
