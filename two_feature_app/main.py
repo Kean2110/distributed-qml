@@ -105,8 +105,8 @@ def create_app(test_only=False):
                 network_config = default_network_config(utils.constants.NODE_NAMES, utils.constants.DEFAULT_HW)
             else:
                 required_qubits_per_qpu = len(c.layers_with_rcnot) + int(c.n_qubits / 2)
-                c.max_qubits_per_qpu = required_qubits_per_qpu
-                network_config = create_network_config(c.noise_model, required_qubits_per_qpu)
+                c.max_qubits_per_qpu = min(required_qubits_per_qpu, utils.constants.MAX_VALUES["qubits_per_client"])
+                network_config = create_network_config(c.noise_model, c.max_qubits_per_qpu)
             
         simulate_application(
             app_instance,

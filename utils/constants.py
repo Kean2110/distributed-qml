@@ -1,5 +1,6 @@
 import math
 import os
+from netqasm.runtime.interface.config import QuantumHardware
 
 # Instructions
 EXIT_INSTRUCTION = "EXIT"
