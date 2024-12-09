@@ -13,15 +13,14 @@ class Timer:
     def timer(self, func):
         func_name = func.__name__
         
-        if func_name not in self.execution_times:
-            self.execution_times[func_name] = []
-        
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             start_time = time.perf_counter()
             value = func(*args, **kwargs)
             end_time = time.perf_counter()
             run_time = end_time - start_time
+            if func_name not in self.execution_times:
+                self.execution_times[func_name] = []
             self.execution_times[func_name].append(run_time)
             return value
 
