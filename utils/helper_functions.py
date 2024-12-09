@@ -60,7 +60,7 @@ def split_array_by_nth_occurrences(n: int, array, element) -> np.array:
     return np.split(array, nth_indices)
 
 
-def calculate_parity_from_shots(result_arrays: list[list[Literal[0,1]]]) -> Literal[0,1]:
+def calculate_value_from_shots(result_arrays: list[list[Literal[0,1]]], return_expectation_value: bool = False) -> Literal[0,1]:
     bitstrings = np.array(result_arrays).T
     n_shots = len(bitstrings)
     zeros = 0
@@ -70,8 +70,13 @@ def calculate_parity_from_shots(result_arrays: list[list[Literal[0,1]]]) -> Lite
             zeros += 1
         else:
             ones += 1
-    output_probs = [zeros / n_shots, ones / n_shots]
-    return output_probs.index(max(output_probs))
+    # if we want to return the expectation value of the measurements
+    if return_expectation_value:
+        return (ones / n_shots)
+    # if we want to return the parity of the qubit measurements
+    else:
+        output_probs = [zeros / n_shots, ones / n_shots]
+        return output_probs.index(max(output_probs))
 
 
 def check_parity(qubits: List[int]) -> Literal[0,1]:
@@ -223,8 +228,7 @@ def take_snapshot_and_print_most_consuming(x: int):
 
 
 if __name__ == '__main__':
-    X, y = prepare_dataset_iris()
-    print(X)
+    print(calculate_expectation_value_from_shots([[1,1,0,1], [0,1,1,0], [0,0,0,0], [1,1,1,1]]))
     #print(calculate_parity_from_shots([[1,1,0], [0,0,0], [0,0,0]]))
     
     

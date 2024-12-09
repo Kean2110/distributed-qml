@@ -6,7 +6,7 @@ from netqasm.sdk.external import Socket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
 from sklearn.model_selection import train_test_split
 from utils.config_parser import ConfigParser
-from utils.helper_functions import calculate_parity_from_shots, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, take_snapshot_and_print_most_consuming, upper_bound_constraint
+from utils.helper_functions import calculate_value_from_shots, prepare_dataset_iris, prepare_dataset_moons, load_latest_checkpoint, lower_bound_constraint, take_snapshot_and_print_most_consuming, upper_bound_constraint
 from utils.model_saver import ModelSaver
 from utils.socket_communication import send_with_header, receive_with_header
 from scipy.optimize import minimize
@@ -97,7 +97,8 @@ class QMLServer:
             # run the model 
             start_time = time.time()
             # run iteration on clients
-            iter_results = self.run_iteration(params)
+            iter_results = self.run_iteration(params) # expectation value or parity results
+            iter_preds = np.round(iter_results, 0).astype(int) # predictions
             SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
@@ -106,7 +107,7 @@ class QMLServer:
             # save results
             self.iter_losses.append(loss)
             # calculate accuracy
-            acc = accuracy_score(ys, iter_results)
+            acc = accuracy_score(ys, iter_preds)
             self.iter_accs.append(acc)
             logger.info(f"Values in iteration {iteration + 1}: Loss {loss}, Accuracy: {acc}, Elpased Minutes: {diff_time_mins}")
             # count up iteration
@@ -147,7 +148,7 @@ class QMLServer:
     
     
     def test_gradient_free(self):
-        test_results = self.run_iteration(self.thetas, test=True)
+        test_results = np.round(self.run_iteration(self.thetas, test=True), 0).astype(int)
         # generate classification report
         dict_report = classification_report(y_true=self.y_test, y_pred=test_results, output_dict=True)
         print(dict_report)
@@ -205,7 +206,7 @@ class QMLServer:
         for i in range(len(results_client_1)):
             # concatenate both lists to get all qubit results
             feature_results_split_into_qubits = results_client_1[i] + results_client_2[i]
-            predicted_label = calculate_parity_from_shots(feature_results_split_into_qubits)
+            predicted_label = calculate_value_from_shots(feature_results_split_into_qubits, self.c.use_expectation_values)
             predicted_labels_per_feature.append(predicted_label)
         return predicted_labels_per_feature
     

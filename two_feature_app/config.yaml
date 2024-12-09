@@ -10,6 +10,7 @@ dataset_function: "MOONS" # either MOONS or IRIS
 start_from_checkpoint: False
 n_qubits: 2
 use_default_network_config: False
+use_expectation_values: False
 #layers_with_rcnot: [0,1,2,3]
 #lb_inputs: 0
 #ub_inputs: 1
