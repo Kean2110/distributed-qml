@@ -77,7 +77,9 @@ class QMLServer:
         # if no initial values initialize randomly
         if initial_thetas is None:
             np.random.seed(self.random_seed)
-            initial_thetas = np.random.uniform(self.c.lb_params, self.c.ub_params, (self.q_depth + 1) * self.n_qubits)
+            lower_theta = max(self.c.lb_params, constants.LOWER_BOUND_PARAMS)
+            upper_theta = min(self.c.ub_params, constants.UPPER_BOUND_PARAMS)
+            initial_thetas = np.random.uniform(lower_theta, upper_theta, (self.q_depth + 1) * self.n_qubits)
         else:
             # convert to numpy float values
             initial_thetas = np.array(initial_thetas, dtype=float)
