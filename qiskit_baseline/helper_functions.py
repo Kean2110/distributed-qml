@@ -3,7 +3,7 @@ import math
 import os
 import pickle
 import time
-import config
+from qiskit_baseline import config
 from typing import Iterable, List, Literal
 from matplotlib import pyplot as plt
 from yaml import dump
@@ -29,8 +29,8 @@ def prepare_dataset_iris(n_features=2):
     X_filtered = X[filter_mask]
     y_filtered = iris.target[filter_mask]
     # min max scale features to range between 0 and 1
-    #scaler = MinMaxScaler(feature_range=(0,1))
-    scaler = MinMaxScaler(feature_range=(0, 2*math.pi))
+    scaler = MinMaxScaler(feature_range=(0,1))
+    #scaler = MinMaxScaler(feature_range=(0, 2*math.pi))
     X_scaled = scaler.fit_transform(X_filtered)
     return X_scaled, y_filtered
     
@@ -69,7 +69,21 @@ def calculate_parity(counts: dict) -> list:
         else:
             ones += count
     output_probs = [zeros / config.N_SHOTS, ones / config.N_SHOTS]
+    # return class
     return output_probs.index(max(output_probs))
+
+
+def calculate_expectation_value(counts: dict) -> list:
+    zeros = 0
+    ones = 0
+    for measure, count in counts.items():
+        if measure.count('1') % 2 == 0:
+            zeros += count
+        else:
+            ones += count
+    output_probs = [zeros / config.N_SHOTS, ones / config.N_SHOTS]
+    # return prob that it belongs to class 1
+    return output_probs[1]
 
 
 def calculate_interpret_result(counts: dict, weights: list[float]):

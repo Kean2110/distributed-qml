@@ -41,22 +41,29 @@ def main(app_config=None):
 
 def main_test_only():
     # load latest checkpoint from input weights folder
-    input_checkpoint_dir = os.path.join(constants.APP_BASE_PATH, "input_weights")
+    input_run_name = "iris_4shots_4depth_randomseed49"
+    output_run_name = f"TEST_ONLY_{input_run_name}"
+    input_run_dir = os.path.join(constants.APP_BASE_PATH, "inputs", input_run_name)
+    input_checkpoint_dir = os.path.join(input_run_dir, "checkpoints")
     data = load_latest_input_checkpoint(input_checkpoint_dir)
-    config = data["config"]
+    if "config" in data:
+        config = data["config"]
+    else: # load config manually from yaml
+        config_path = os.path.join(input_run_dir, "config.yaml")
+        config = ConfigParser(config_path, output_run_name)
     # set ouput path
-    output_path = os.path.join(constants.APP_BASE_PATH, "output", f"TEST_ONLY_{config['q_depth']}_{config['n_shots']}_{config['n_samples']}_{config['dataset_function']}")
+    output_path = os.path.join(constants.APP_BASE_PATH, "output", output_run_name)
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     # setup logging
     setup_logging(False, output_path, "DEBUG")
-    test_data = {"data": data["test_data"], "labels": data["test_labels"]}
+    thetas = data["params"]
+    server_instance = server.QMLServer(config.n_qubits, config.epochs, thetas, config.random_seed, config.q_depth, config.n_shots, config.n_samples, config.test_size, config.dataset_function, False, output_path)
     # initialize server with the test data
-    server_instance = server.QMLServer(None, data["weights"], None, config["q_depth"], config["n_shots"], config["n_samples"], None, config["dataset_function"], False, output_path, test_data)
     server_instance.send_params_and_features()
     # execute test loop
     report = server_instance.test_gradient_free()
-    fname = f"report_trained_in_qiskit"
+    fname = f"test_only_report.txt"
     save_classification_report(fname, output_path, report)
     
     return {

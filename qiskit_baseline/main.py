@@ -3,13 +3,13 @@ import os
 from typing import Literal
 from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, BasicAer, execute
-from sklearn.metrics import log_loss, accuracy_score, brier_score_loss, classification_report
+from sklearn.metrics import log_loss, accuracy_score, brier_score_loss, classification_report, hamming_loss
 from sklearn.model_selection import train_test_split
-from qiskit_baseline.helper_functions import calculate_parity, calculate_interpret_result, check_parity, lower_bound_constraint_with_split, plot_acc_and_loss, prepare_dataset_iris, prepare_dataset_moons, plot_accuracy, plot_losses, save_circuit, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data, upper_bound_constraint_with_split
+from qiskit_baseline.helper_functions import calculate_parity, calculate_interpret_result, check_parity, lower_bound_constraint_with_split, plot_acc_and_loss, prepare_dataset_iris, prepare_dataset_moons, plot_accuracy, plot_losses, save_circuit, save_losses_weights_predictions, save_classification_report, save_weights_config_test_data, upper_bound_constraint_with_split, calculate_expectation_value
 from scipy.optimize import minimize, Bounds
 import numpy as np
 import random
-import config
+from qiskit_baseline import config
 import time
 
 
@@ -74,7 +74,7 @@ def run_circuit(circuit: QuantumCircuit) -> list[int]:
 
 
 def calculate_loss(y_true, y_pred):
-    #loss = brier_score_loss(y_true, y_pred)
+    #loss = hamming_loss(y_true, y_pred)
     loss = log_loss(y_true, y_pred, labels=[0,1])
     return loss
 
@@ -94,18 +94,18 @@ def run_gradient_free(X, y, params, num_iter, n_qubits, q_depth):
         print(f"Entering iteration {iteration}")
         thetas, interpret_weights = np.split(params, [params_split_index]) # split up trained weights
         iter_results = np.empty(len(X))
+        iter_preds = np.empty(len(X))
         for i in range(len(samples)):
             circuit = create_circuit(n_qubits, q_depth, samples[i], thetas)
             counts = run_circuit(circuit)
-            predicted_label = calculate_interpret_result(counts, interpret_weights)
-            predicted_label2 = calculate_parity(counts)
-            assert predicted_label == predicted_label2
-            iter_results[i] = predicted_label
-        all_predictions.append(iter_results)
+            iter_results[i] = calculate_parity(counts)
+            #iter_results[i] = calculate_expectation_value(counts)
+            iter_preds[i] = round(iter_results[i]) # rounded probability of belonging to class 1 = predicted label
+        all_predictions.append(iter_preds)
         all_weights.append(params)
         loss = calculate_loss(ys, iter_results)
         all_losses.append(loss)
-        acc = accuracy_score(ys, iter_results)
+        acc = accuracy_score(ys, iter_preds)
         all_accs.append(acc)
         print(f"Values in iteration {iteration}: Loss: {loss}, Accuracy: {acc}")
         iteration += 1
@@ -139,14 +139,13 @@ def load_dataset(dataset_str, n_samples):
         raise ValueError("No valid dataset provided in config") 
 
 
-def test(X, y, params, n_qubits, q_depth):
+def test(X, y, params, n_qubits, q_depth, n_thetas = len(config.INITIAL_THETAS)):
     test_results = np.empty(len(X))
-    n_thetas = len(config.INITIAL_THETAS)
     for i in range(len(X)):
         thetas, interpret_weights = np.split(params, [n_thetas])
         circuit = create_circuit(n_qubits, q_depth, X[i], thetas)
         counts = run_circuit(circuit)
-        predicted_label = calculate_interpret_result(counts, interpret_weights)
+        predicted_label = calculate_parity(counts)
         test_results[i] = predicted_label
     # generate classification report
     dict_report = classification_report(y_true=y, y_pred=test_results, output_dict=True)

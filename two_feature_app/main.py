@@ -121,4 +121,5 @@ def create_app(test_only=False):
     
     
 if __name__ == "__main__":
+    # change to True if we want to have a test only run, modify paths in "server.py", and copy all data into inputs dir
     create_app(False)

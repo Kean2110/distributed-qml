@@ -81,3 +81,4 @@ For that u can use screen.
 
 # Additional notes
 - Since the runtimes can be long, make sure that you do not override the config file that was used for a currently used run. In case the run is stopped and attempts to re-run, the same config file will be used.
+- For a test-only run, the instructions are list in the two_feature_app/inputs/README.md
