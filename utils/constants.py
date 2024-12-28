@@ -61,3 +61,6 @@ MULTI_THREAD_SIMULATOR = "netsquid"
 
 NODE_NAMES = ["server", "client1", "client2"]
 DEFAULT_HW = QuantumHardware.Generic
+
+LOSS_TOL = 10
+MIN_SAVE_INTERVAL = 10
