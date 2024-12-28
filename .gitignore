@@ -11,14 +11,20 @@ two_feature_app/config/*
 two_feature_app/output/*
 !/two_feature_app/output/.gitkeep
 
+# Ignore inputs
+two_feature_app/inputs/*
+!/two_feature_app/inputs/README.md
 # Ignore slurm output
 slurm_output/*
 
 # Ignore playground
 test-app/*
+test-app2/*
+test/*
 
 # Ignore classification reports
 qiskit_baseline/classification_reports/*
+qiskit_baseline/classification_reports/*.txt
 !/qiskit_baseline/classification_reports/.gitkeep
 
 scratches/

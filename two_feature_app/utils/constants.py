@@ -52,3 +52,11 @@ UPPER_BOUND_PARAMS = 2 * math.pi
 
 LOWER_BOUND_INPUTS = 0 + BOUND_EPSILON
 UPPER_BOUND_INPUTS = 1
+
+SINGLE_THREAD_SIMULATOR = "netsquid_single_thread"
+MULTI_THREAD_SIMULATOR = "netsquid"
+
+NODE_NAMES = ["server", "client1", "client2"]
+
+LOSS_TOL = 10
+MIN_SAVE_INTERVAL = 10
