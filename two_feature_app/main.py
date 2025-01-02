@@ -54,7 +54,7 @@ def read_params_from_yaml():
     return inputs
 
 
-def create_network_config(noise_type: NoiseType = NoiseType.NoNoise, required_qubits_per_qpu: int = 5) -> NetworkConfig:
+def create_network_config(noise_type: NoiseType = NoiseType.NoNoise, required_qubits_per_qpu: int = 5, fidelity=1) -> NetworkConfig:
     links = []
     
     node_server = Node(name=utils.constants.NODE_NAMES[0], hardware=utils.constants.DEFAULT_HW, qubits=[], gate_fidelity=1)
@@ -74,7 +74,7 @@ def create_network_config(noise_type: NoiseType = NoiseType.NoNoise, required_qu
                 node_name1=node_name,
                 node_name2=other_node_name,
                 noise_type=noise_type,
-                fidelity=1,
+                fidelity=fidelity,
             )
             links += [link]
     
@@ -106,7 +106,7 @@ def create_app(test_only=False):
             else:
                 required_qubits_per_qpu = len(c.layers_with_rcnot) + int(c.n_qubits / 2)
                 c.max_qubits_per_qpu = min(required_qubits_per_qpu, utils.constants.MAX_VALUES["qubits_per_client"])
-                network_config = create_network_config(c.noise_model, c.max_qubits_per_qpu)
+                network_config = create_network_config(c.noise_model, c.max_qubits_per_qpu, c.link_fidelity)
             
         simulate_application(
             app_instance,

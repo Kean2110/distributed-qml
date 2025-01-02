@@ -31,6 +31,7 @@ class ConfigParser:
     layers_with_rcnot = None
     netqasm_simulator = constants.MULTI_THREAD_SIMULATOR
     noise_model = NoiseType.NoNoise
+    link_fidelity = 1
     lb_params = constants.LOWER_BOUND_PARAMS
     ub_params = constants.UPPER_BOUND_PARAMS
     lb_inputs = constants.LOWER_BOUND_INPUTS
