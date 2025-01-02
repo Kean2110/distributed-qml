@@ -4,7 +4,7 @@ enable_netqasm_logs: False
 random_seed: 42
 q_depth: 4
 n_shots: 1
-n_samples: 10 # only used for the MOONS dataset, in the IRIS this defaults to 150
+n_samples: 10 # only used for the MOONS dataset, in the IRIS this defaults to 100
 test_size: 0.2
 dataset_function: "MOONS" # either MOONS or IRIS
 start_from_checkpoint: False
