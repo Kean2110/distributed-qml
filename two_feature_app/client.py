@@ -125,8 +125,8 @@ class Client:
                     if q < len(qubits) - 1:
                         qbit.cnot(qubits[q + 1])
                         
-                    # if the RCNOT Map indicates a RCNOT, execute it (only for the "last qubit")
-                    if q == len(qubits) - 1 and bit_val:
+                    # if the RCNOT Map indicates a RCNOT, execute it (only for the "last qubit" for the ctrl node and "first qubit" for the target node)
+                    if bit_val and ((self.ctrl_qubit and q == len(qubits) - 1) or (not self.ctrl_qubit and q == 0)):
                         if not eprs: # if no EPRs are left, generate new ones
                             eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection)
                         epr = eprs.pop() # pop EPR pair
