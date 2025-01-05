@@ -153,11 +153,11 @@ def prepare_dataset_iris(n_features: int = 2, lower_bound: float = 0.0, upper_bo
     return X_scaled, y_filtered
     
     
-def prepare_dataset_moons(n_samples: int = 100, lower_bound: float = 0.0, upper_bound: float = 1.0, random_seed: int = 42) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
+def prepare_dataset_moons(n_samples: int = 100, lower_bound: float = 0.0, upper_bound: float = 1.0, noise: float = None, random_seed: int = 42) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
     """
     Loads the moons dataset
     """
-    moons = make_moons(n_samples=n_samples, random_state=random_seed)
+    moons = make_moons(n_samples=n_samples, noise=noise, random_state=random_seed)
     X = moons[0]
     y = moons[1]
     scaler = MinMaxScaler(feature_range=(lower_bound, upper_bound))

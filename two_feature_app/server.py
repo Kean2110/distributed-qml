@@ -85,6 +85,7 @@ class QMLServer:
             initial_thetas = np.array(initial_thetas, dtype=float)
         assert len(initial_thetas) == (self.q_depth + 1) * self.n_qubits, "Not enough initial thetas provided"
         return initial_thetas
+    
        
     @global_timer.timer
     def train_and_test_gradient_free(self, file_name: str) -> dict:
@@ -252,7 +253,7 @@ class QMLServer:
         elif dataset_name.casefold() == "moons":
             if n_features != 2:
                 raise ValueError("The Moons dataset only supports two features")
-            X, y = prepare_dataset_moons(n_samples, self.c.lb_inputs, self.c.ub_inputs, random_seed)
+            X, y = prepare_dataset_moons(n_samples, self.c.lb_inputs, self.c.ub_inputs, self.c.moons_noise, random_seed)
             return train_test_split(X,y, test_size=test_size, random_state=random_seed, stratify=y)
         else:
             raise ValueError("Inappropriate dataset provided: ", dataset_name)    
