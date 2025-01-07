@@ -7,6 +7,7 @@
 #SBATCH --mail-user K.Izadi@campus.lmu.de
 #SBATCH --mail-type ALL
 echo Running on node $SLURMD_NODENAME at `date`
+echo Git commit: $(git rev-parse HEAD)"
 . ./env/bin/activate
 cd two_feature_app
 python main.py $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_JOB_ID$SLURM_ARRAY_TASK_ID
