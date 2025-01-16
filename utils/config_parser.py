@@ -38,6 +38,9 @@ class ConfigParser:
     use_default_network_config = False
     max_qubits_per_qpu = _DEFAULT_NUM_QUBITS
     use_expectation_values = False
+    moons_noise = None
+    rhobeg = 1.0
+    rhoend = 1e-4
 
     def __new__(cls, config_path=None, run_id=None):
         if cls._instance is None:
