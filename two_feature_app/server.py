@@ -41,7 +41,7 @@ class QMLServer:
         if start_from_checkpoint:
             self.load_params_from_checkpoint()
         self.thetas = self.initialize_thetas(self.thetas)
-        
+        self.set_trust_region()
         self.setup_sockets()
         self.setup_model_saver()
     
@@ -86,7 +86,13 @@ class QMLServer:
         assert len(initial_thetas) == (self.q_depth + 1) * self.n_qubits, "Not enough initial thetas provided"
         return initial_thetas
     
-       
+    
+    def set_trust_region(self):
+        # set cobyla trust region by estimating the decay
+        self.rho = self.c.rhobeg - (self.c.rhobeg - self.c.rhoend) * (self.start_iteration / (self.iterations + self.start_iteration)) # estimate trust region size from checkpoint
+        logger.info(f"Set rho value to {self.rho}")
+    
+      
     @global_timer.timer
     def train_and_test_gradient_free(self, file_name: str) -> dict:
         iteration = self.start_iteration
@@ -134,7 +140,7 @@ class QMLServer:
         ]
         
         # run optimize function
-        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.iterations}, method="COBYLA", constraints=constraints, callback=iteration_callback)
+        res = minimize(method_to_optimize, self.thetas, args=(self.y_train), options={'disp': True, 'maxiter': self.iterations, 'rhobeg': self.rho, 'tol': self.c.rhoend}, method="COBYLA", constraints=constraints, callback=iteration_callback)
         
         # save trained model
         self.ms.save_intermediate_results(self.thetas, iteration, self.iter_losses, self.iter_accs, global_timer.get_execution_times(), True)
