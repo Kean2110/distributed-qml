@@ -22,6 +22,7 @@ slurm_output/*
 test-app/*
 test-app2/*
 test/*
+plotting/*
 
 # Ignore classification reports
 qiskit_baseline/classification_reports/*.txt
