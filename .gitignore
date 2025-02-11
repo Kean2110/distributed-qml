@@ -4,16 +4,16 @@
 !*/log/.gitkeep
 
 # Ignore configs
-two_feature_app/config/*
-!/two_feature_app/config/.gitkeep
+dqml_model/config/*
+!/dqml_model/config/.gitkeep
 
 # Ignore outputs
-two_feature_app/output/*
-!/two_feature_app/output/.gitkeep
+dqml_model/output/*
+!/dqml_model/output/.gitkeep
 
 # Ignore inputs
-two_feature_app/inputs/*
-!/two_feature_app/inputs/README.md
+dqml_model/inputs/*
+!/dqml_model/inputs/README.md
 
 # Ignore slurm output
 slurm_output/*
