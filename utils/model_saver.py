@@ -7,6 +7,9 @@ from utils.logger import logger
 
 import numpy as np
 
+"""
+Class to save intermediate results in checkpoint pickle files periodically.
+"""
 
 class ModelSaver:
     def __init__(self, output_dir, best_loss=None) -> None:

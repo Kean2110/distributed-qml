@@ -9,8 +9,8 @@ def send_value(channel: Union[Socket, BroadcastChannel], value: Union[float, int
     """
     Sends a numerical value to a socket/broadcast_channel.
 
-    :param: channel: The socket/broadcast_channel which is used for sending
-    :param: value: The value that should be sent
+    :param channel: The socket/broadcast_channel which is used for sending
+    :param value: The value that should be sent
     """
     channel.send(str(value))
 
@@ -19,8 +19,8 @@ def send_as_str(channel: Union[Socket, BroadcastChannel], values: Union[str, int
     """
     Sends a value as a string to a socket/broadcast_channel.
 
-    :param: channel: The socket/broadcast_channel which is used for sending
-    :param: values: The value(s) that should be sent
+    :param channel: The socket/broadcast_channel which is used for sending
+    :param values: The value(s) that should be sent
     """
     channel.send(str(values))
     
@@ -29,8 +29,8 @@ def receive_and_eval(channel: Union[Socket, BroadcastChannel]) -> Union[bytes, i
     """
     Receives a value, which is evaluated.
 
-    :param: channel: The socket/broadcast_channel which is used for receiving
-    :returns: the literal that was received
+    :param channel: The socket/broadcast_channel which is used for receiving
+    :returns the literal that was received
     """
     str_value = channel.recv(block=True)
     return ast.literal_eval(str_value)
@@ -40,14 +40,21 @@ def send_tensor(channel: Union[Socket, BroadcastChannel], value) -> None:
     """
     Converts a pytorch tensor to float and then to string and send it to a socket/broadcast_channel.
 
-    :param: channel: The socket/broadcast_channel which is used for sending
-    :param: value: The tensor that should be sent
+    :param channel: The socket/broadcast_channel which is used for sending
+    :param value: The tensor that should be sent
     """
     number = value.item()
     channel.send(str(number))
 
 
 def send_with_header(channel: Union[Socket, BroadcastChannel], payload: Union[dict, int, list, np.ndarray], header: str) -> None:
+    """
+    Sends a classical message via a Socket or Channel with a header.
+    
+    :param channel: Scket/BroadcastChannel which is used for sending.
+    :param payload: Payload to send.
+    :param header: Header to send along payload.
+    """
     if isinstance(payload, np.ndarray):
         # send as list
         payload_str = str(payload.tolist())
@@ -58,6 +65,19 @@ def send_with_header(channel: Union[Socket, BroadcastChannel], payload: Union[di
 
 
 def receive_with_header(channel: Union[Socket, BroadcastChannel], expected_header: str, expected_dtype: Union[dict, int, list, np.ndarray] = None) -> Union[dict, int, list, np.ndarray]:
+    """
+    Receives a classical message via a Socket or Channel with a header.
+    If the received header doesnt matcch the expected header, an AssertionError is thrown.
+    
+    :param channel: Scket/BroadcastChannel which is used for receiving.
+    :param expected_header: Header expected to receive.
+    :param exepcted_dtype: Expected Datatype of the payload.
+    
+    :returns: Received payload.
+    
+    :raises: AssertionError if the received header doesnt match the expected header.
+    """
+    
     msg = channel.recv_structured(block=True)
     assert msg.header == expected_header
     payload_evaluated = ast.literal_eval(msg.payload)
@@ -68,6 +88,13 @@ def receive_with_header(channel: Union[Socket, BroadcastChannel], expected_heade
 
 
 def reset_socket(socket: Socket) -> Socket:
+    """
+    Reset the Socket and return it.
+    
+    :param socket: Socket to reset.
+    
+    :returns: Reset socket.
+    """
     name = socket.app_name
     remote_name = socket.remote_app_name
     id = socket.id

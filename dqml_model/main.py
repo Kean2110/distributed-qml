@@ -1,14 +1,8 @@
-from ctypes import util
 import warnings
-import os
 from netqasm.runtime.application import default_app_instance
-from netqasm.runtime.interface.config import default_network_config, NetworkConfig, Node, Link, QuantumHardware, Qubit, NoiseType
+from netqasm.runtime.interface.config import default_network_config, NetworkConfig, Node, Link, Qubit, NoiseType
 from netqasm.sdk.external import simulate_application
 from utils.config_parser import ConfigParser
-import glob
-import yaml
-import logging
-import os
 import sys
 import traceback
 import utils.constants
@@ -21,6 +15,12 @@ Entry point if we don't want to use `netqasm simulate`, e.g. for debugging
 """   
 
 def setup_config():
+    """
+    Sets up the config based on the provided command line arguemtns.
+    If two arguments are provied, the first one is the config number, and the second one is the RUN ID.
+    If one argument is provided, the RUN ID is ommitted.
+    If no argument is provided, the default config is used.
+    """
     try:
         config_number = int(sys.argv[1])
         config_path = f"config/config{config_number}.yaml"
@@ -35,34 +35,30 @@ def setup_config():
         config_path = "config.yaml"
         c = ConfigParser(config_path, None)
     return c
-        
-
-def read_params_from_yaml():
-    # Get the directory of the current file
-    current_directory = os.path.dirname(os.path.abspath(__file__))
-    # Search for YAML files in the current directory
-    yaml_files = glob.glob(os.path.join(current_directory, '*.yaml'))
-    inputs = {}
-    # read yaml files and add to inputs
-    for file in yaml_files:
-        with open(file, 'r') as config_file:
-            data = yaml.safe_load(config_file) or {}
-            # obtain file_name of yaml by removing directory path and file extension (.yaml)
-            file_name = os.path.basename(file)
-            instance_name, _ = os.path.splitext(file_name)
-            inputs[instance_name] = data
-    return inputs
 
 
 def create_network_config(noise_type: NoiseType = NoiseType.NoNoise, required_qubits_per_qpu: int = 5, fidelity=1) -> NetworkConfig:
+    """
+    Creates a custom Network Config including Noise and default amounts of Qubits per QPU.
+    
+    :param noise_type: Type of Quantum Channel noise.
+    :param required_qubits_per_qpu: Number of qubits that each QPU will have.
+    :param fidelity: Quantum link fidelity.
+    
+    :returns: NetworkConfig.
+    """
+    
     links = []
     
+    # configure all three nodes
+    # server doesnt contain qubits, clients each contain "required_qubits_per_qpu" qubits
     node_server = Node(name=utils.constants.NODE_NAMES[0], hardware=utils.constants.DEFAULT_HW, qubits=[], gate_fidelity=1)
     node_client1 = Node(name=utils.constants.NODE_NAMES[1], hardware=utils.constants.DEFAULT_HW, qubits = [Qubit(id=i, t1=0, t2=0) for i in range(required_qubits_per_qpu)], gate_fidelity=1)
     node_client2 = Node(name=utils.constants.NODE_NAMES[2], hardware=utils.constants.DEFAULT_HW, qubits = [Qubit(id=i, t1=0, t2=0) for i in range(required_qubits_per_qpu)], gate_fidelity=1)
     
     nodes = [node_server, node_client1, node_client2]
     
+    # setup links between all network nodes
     for node in nodes:
         node_name = node.name
         for other_node in nodes:
@@ -83,11 +79,18 @@ def create_network_config(noise_type: NoiseType = NoiseType.NoNoise, required_qu
 
 
 def create_app(test_only=False):
+    """
+    Creates the NetQASM Application and simulates it.
+    
+    :param test_only: True if a test only run should be executed.
+    """
+    # set server_main function
     if test_only:
         server_main = app_server.main_test_only
     else:
         server_main = app_server.main
-        
+    
+    # create a NetQASM App Instance
     app_instance = default_app_instance(
         [
             ("server", server_main),
@@ -101,13 +104,16 @@ def create_app(test_only=False):
             network_config = default_network_config(utils.constants.NODE_NAMES, utils.constants.DEFAULT_HW)
         else:
             c = setup_config()
+            # setup Network Config
             if c.use_default_network_config:
                 network_config = default_network_config(utils.constants.NODE_NAMES, utils.constants.DEFAULT_HW)
             else:
+                # configure network config based on the provided config parameters (required EPR pairs and data qubits)
                 required_qubits_per_qpu = len(c.layers_with_rcnot) + int(c.n_qubits / 2)
                 c.max_qubits_per_qpu = min(required_qubits_per_qpu, utils.constants.MAX_VALUES["qubits_per_client"])
                 network_config = create_network_config(c.noise_model, c.max_qubits_per_qpu, c.link_fidelity)
-            
+        
+        # simulate the netqasm application
         simulate_application(
             app_instance,
             use_app_config=False,

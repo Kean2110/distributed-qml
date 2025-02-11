@@ -7,6 +7,9 @@ from utils.logger import logger
 
 
 def receive_teleported_qubit(epr_socket, classical_socket, netqasm_connection):
+    """
+    Receive teleported qubit.
+    """
     with netqasm_connection:
         epr = epr_socket.recv_keep()[0]
         netqasm_connection.flush()
@@ -24,6 +27,9 @@ def receive_teleported_qubit(epr_socket, classical_socket, netqasm_connection):
 
 
 def teleport_qubit(epr_socket, classical_socket, netqasm_connection, feature, theta):
+    """
+    Teleport qubit to remote node
+    """
     with netqasm_connection:
         q = Qubit(netqasm_connection)
         set_qubit_state(q, feature, theta)
@@ -43,6 +49,14 @@ def teleport_qubit(epr_socket, classical_socket, netqasm_connection, feature, th
 
 
 def remote_cnot_control(classical_socket: Socket, control_qubit: Qubit, epr_qubit: Qubit):
+    """
+    Remote CNOT Control implementation.
+    https://arxiv.org/abs/quant-ph/0005101
+    
+    :param classical_socket: Socket to send/receive the classical measurement results.
+    :param control_qubit: Control data qubit.
+    :param epr_qubit: Communication qubit.
+    """
     conn = epr_qubit.connection
     # CNOT between ctrl and epr
     control_qubit.cnot(epr_qubit)
@@ -65,7 +79,14 @@ def remote_cnot_control(classical_socket: Socket, control_qubit: Qubit, epr_qubi
 
 
 def remote_cnot_target(classical_socket: Socket, target_qubit: Qubit, epr_qubit: Qubit):
-
+    """
+    Remote CNOT Target implementation.
+    https://arxiv.org/abs/quant-ph/0005101
+    
+    :param classical_socket: Socket to send/receive the classical measurement results.
+    :param target_qubit: Target data qubit.
+    :param epr_qubit: Communication qubit.
+    """
     # receive measurement result from EPR pair from controller
     epr_meas = classical_socket.recv(block=True)
 

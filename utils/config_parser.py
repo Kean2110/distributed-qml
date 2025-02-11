@@ -24,8 +24,7 @@ class ConfigParser:
     n_qubits = 2
     initial_thetas = None
     batch_size = int(n_samples * (1-test_size))
-    # either MOONS or IRIS
-    dataset_function = "MOONS"
+    dataset_function = "MOONS" # either MOONS or IRIS
     start_from_checkpoint = False
     n_qubits = 2
     layers_with_rcnot = None
@@ -44,6 +43,7 @@ class ConfigParser:
     rhoend = 1e-4
 
     def __new__(cls, config_path=None, run_id=None):
+        # If instantiated, return class instance, if not existent, a new instance is created with a lock.
         if cls._instance is None:
             with cls._lock:
                 cls._instance = super().__new__(cls)
@@ -63,10 +63,11 @@ class ConfigParser:
             config_path = "config.yaml"
         app_dir = os.getcwd()
         config_file = os.path.join(app_dir, config_path)
-        # load config
+        # load config file
         with open(config_file, 'r') as file:
             self.config = yaml.safe_load(file)
             self.config_path = config_file
+        # check restrictions on all provided parameters and set class attributes
         for key, value in self.config.items():
             ConfigParser.check_restrictions(key, value)
             if value:
@@ -76,6 +77,7 @@ class ConfigParser:
         # specify layers with a remote CNOT
         if not self.layers_with_rcnot:
             self.layers_with_rcnot = list(range(self.q_depth)) # per default all layers have a RCNOT
+        # check restrictions on EPR layers
         ConfigParser.check_epr_list_restriction(self.layers_with_rcnot, self.q_depth)
     
     def get_config(self) -> dict:

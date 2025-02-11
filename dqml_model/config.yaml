@@ -1,3 +1,4 @@
+# Default Config File, for all parameters see: utils/config_parser.py
 epochs: 10
 log_level: "DEBUG"
 enable_netqasm_logs: False
@@ -11,11 +12,11 @@ start_from_checkpoint: False
 n_qubits: 2
 use_default_network_config: False
 use_expectation_values: False
-#link_fidelity: 1
-#layers_with_rcnot: [0,1,2,3]
-#lb_inputs: 0
-#ub_inputs: 1
-#lb_params: None # None means using default
-#ub_params: None # None means using default
-#netqasm_simulator: "netsquid_single_thread"
+link_fidelity: 1
+layers_with_rcnot: [0,1,2,3]
+lb_inputs: 0
+ub_inputs: 1
+lb_params: None # None means using default
+ub_params: None # None means using default
+netqasm_simulator: "netsquid_single_thread"
 

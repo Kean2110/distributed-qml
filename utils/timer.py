@@ -4,7 +4,11 @@ from utils.logger import logger
 
 import numpy as np
 
-
+"""
+Class Timer that contains a decorator, that can be applied to measure function executions.
+Saves all execution times and averages in respective dictionaries.
+https://dev.to/kcdchennai/python-decorator-to-measure-execution-time-54hk
+"""
 class Timer:
     def __init__(self) -> None:
         self.execution_times = {}

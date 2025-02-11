@@ -1,6 +1,5 @@
 import os
 import time
-import tracemalloc
 from typing import Literal, Union
 from netqasm.sdk.external import Socket
 from sklearn.metrics import classification_report, log_loss, accuracy_score
@@ -18,6 +17,12 @@ from utils.logger import logger
 from utils.plotting import plot_accs_and_losses
 from netqasm.sdk.shared_memory import SharedMemoryManager
 
+
+"""
+Class of the classical server.
+Instantiated by app_server.py.
+Note: Epochs = Iterations = Iters
+"""
 class QMLServer:
     def __init__(self, n_qubits, epochs, initial_thetas, random_seed, q_depth, n_shots, n_samples, test_size, dataset_function, start_from_checkpoint, output_path, test_data=None) -> None:
         self.n_qubits = n_qubits
@@ -66,9 +71,11 @@ class QMLServer:
     
     
     def load_params_from_checkpoint(self):
+        # Load parameters from checkpoint file.
         checkpoint_path = os.path.join(self.output_path, "checkpoints")
         self.thetas, self.start_iteration, self.iter_losses, self.iter_accs, exec_times = load_latest_checkpoint(checkpoint_path)
         logger.info(f"Loaded params {self.thetas}, iteration no {self.start_iteration}, losses {self.iter_losses}, accs {self.iter_accs} and execution times from checkpoint")
+        # Reduce the number of iterations that have to be executed 
         self.iterations -= self.start_iteration
         global_timer.set_execution_times(exec_times)
     
@@ -94,7 +101,14 @@ class QMLServer:
     
       
     @global_timer.timer
-    def train_and_test_gradient_free(self, file_name: str) -> dict:
+    def train_and_test_model(self, file_name: str) -> dict:
+        """
+        Trans and tests the DQML Model with the gradient-free optimizer COBYLA.
+        
+        :param file_name: Filename of the Plots that are generated.
+        
+        :returns: Classification report.
+        """
         iteration = self.start_iteration
         
         # function to optimize
@@ -103,11 +117,10 @@ class QMLServer:
         def method_to_optimize(params, ys):
             nonlocal iteration
             logger.info(f"Entering iteration {iteration + 1} of {self.iterations + self.start_iteration}")
-            # run the model 
             start_time = time.time()
             # run iteration on clients
             iter_results = self.run_iteration(params) # expectation value or parity results
-            iter_preds = np.round(iter_results, 0).astype(int) # predictions
+            iter_preds = np.round(iter_results, 0).astype(int) # predictions (only needed if expectation values are used)
             SharedMemoryManager.reset_memories() # reset memories between clients and the QuantumNodes in order to reduce memory consumption after each iteration
             end_time = time.time()
             diff_time_mins = (end_time - start_time)/60.0
@@ -146,17 +159,22 @@ class QMLServer:
         self.ms.save_intermediate_results(self.thetas, iteration, self.iter_losses, self.iter_accs, global_timer.get_execution_times(), True)
         
         # test run
-        dict_test_report = self.test_gradient_free()
+        dict_test_report = self.test_model()
         
         # exit clients
         self.send_exit_instructions()
-            
+        
+        # generate and save plots    
         plot_accs_and_losses(file_name, self.output_path, self.iter_accs, self.iter_losses)
         
         return dict_test_report
     
     
-    def test_gradient_free(self):
+    def test_model(self) -> dict:
+        """
+        Only tests the DQML model on initialized weights (thetas)
+        :returns: Classification report.
+        """
         test_results = np.round(self.run_iteration(self.thetas, test=True), 0).astype(int)
         # generate classification report
         dict_report = classification_report(y_true=self.y_test, y_pred=test_results, output_dict=True)
@@ -165,6 +183,9 @@ class QMLServer:
     
     
     def send_params_and_features(self):
+        """
+        Send configuration parameters and features to both clients.
+        """
         # create params dict
         params_dict = {"n_shots": self.n_shots, "q_depth": self.q_depth, "qubits_per_client": self.n_qubits // 2}
         # send params
@@ -185,7 +206,14 @@ class QMLServer:
 
     
     @global_timer.timer
-    def run_iteration(self, params, test=False):
+    def run_iteration(self, params: list[float], test: bool = False):
+        """
+        Run a single iteration by instructing the clients to execute the VQC.
+        Receive the results, and calculate the iteration results based on the parity.
+        
+        :param params: Rotational theta weights.
+        :param test: Indicating whether this is a test iteration run.
+        """
         if test:
             self.send_test_instructions()
         else:
@@ -206,8 +234,12 @@ class QMLServer:
     
     def calculate_iter_results(self, results_client_1: list[list[list[Literal[0,1]]]], results_client_2: list[list[list[Literal[0,1]]]]) -> list[int]:
         '''
-        Calculate the results per iteration of both clients.
-        Results_client_X consists of a list that is n_features * n_qubits * n_shots and is a list of 0 and 1s, which are the measurement results of the qubit
+        Calculate the results of a single iteration for all features.
+        
+        :param results_client_1: Qubit measurement results of client1 of shape n_features*n_qubits*n_shots of 0s and 1s. 
+        :param results_client_2: Qubit measurement results of client2 of shape n_features*n_qubits*n_shots of 0s and 1s. 
+        
+        :returns: List of predicted labels per feature.
         '''
         # results_client_X look like n_features * n_qubits * n_shots
         predicted_labels_per_feature = []

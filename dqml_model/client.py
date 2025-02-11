@@ -1,17 +1,18 @@
-import math
 import numpy as np
 import utils.constants as constants
-import os
 from netqasm.sdk.external import NetQASMConnection, Socket
 from netqasm.sdk import EPRSocket, Qubit
-from netqasm.sdk.build_types import HardwareConfig, GenericHardwareConfig
-from utils.helper_functions import phase_gate, generate_chunks_with_max_size, split_array_by_nth_occurrences
+from netqasm.sdk.build_types import GenericHardwareConfig
 from utils.socket_communication import receive_with_header, send_as_str, send_with_header, reset_socket
 from utils.qubit_communication import remote_cnot_control, remote_cnot_target
 from utils.logger import logger
 from utils.feature_maps import ry_feature_map
 from utils.config_parser import ConfigParser
 
+"""
+Class of the Quantum Clients.
+Instantiated by app_client1.py and app_client2.py.
+"""
 
 class Client:
     def __init__(self, name: str, other_client_name: str, socket_id_with_server: int, socket_id_with_other_client: int, ctrl_qubit: bool):
@@ -30,6 +31,10 @@ class Client:
 
 
     def start_client(self):
+        """
+        Starts the client, which listens to instructions on the classical socket with the server.
+        In case an EXIT instruction is received, the function terminates.
+        """
         self.receive_starting_values_from_server()
         # receive instructions from server
         while True:
@@ -45,6 +50,9 @@ class Client:
         
 
     def receive_starting_values_from_server(self):
+        """
+        Receive configuration parameters, features, and test features from the server.
+        """
         # receive nshots and qdepth
         self.params = receive_with_header(self.socket_server, constants.PARAMS)
         logger.info(f"{self.name} received params dict: {self.params}")
@@ -59,6 +67,12 @@ class Client:
     
     
     def run_iteration(self, test=False):
+        """
+        Runs an epoch and executes the VQC in a distributed manner.
+        
+        :param test: Indicates whether a test run is made.
+        """
+        # set features accordingly.
         if test:
             features_array = self.test_features
         else:
@@ -66,6 +80,8 @@ class Client:
         
         # receive weights from server
         thetas = receive_with_header(self.socket_server, constants.THETAS, expected_dtype=np.ndarray)
+        
+        # set HW Config and NetQASMConnection
         hw_config = GenericHardwareConfig(self.max_qubits)
         netqasm_connection = NetQASMConnection(
                 app_name=self.name,
@@ -78,16 +94,23 @@ class Client:
         with netqasm_connection:
             for i, features in enumerate(features_array):
                 logger.debug(f"{self.name} Running feature number {i} with value(s) {features}")
+                # run the VQC for every feature
                 single_result = self.run_circuit_locally(features, thetas, netqasm_connection)
                 results.append(single_result)
         results = np.array(results)
         send_with_header(self.socket_server, results, constants.RESULTS)
 
     
-    def run_circuit_locally(self, features: np.array, weights: np.array, netqasm_connection: NetQASMConnection):
+    def run_circuit_locally(self, features: np.array, weights: np.array, netqasm_connection: NetQASMConnection) -> np.ndarray:
         '''
-        Runs the PQC on this client. 
+        Runs the VQC on this client.
         This includes a feature map and an entanglement layer, that entangles with the other client as well.
+        
+        :param features: Fatures that will be encoded.
+        :param weights: Trained rotational weights.
+        :param netqasm_connection: For executing the quantum instructions.
+        
+        :returns: Measurement results of shape n_qubits * n_shots.
         '''
         n_shots = self.params["n_shots"]
         q_depth = self.params["q_depth"]
@@ -96,11 +119,13 @@ class Client:
         # reshape weights
         weights_reshaped = np.split(weights, n_qubits)
 
+        # prepare array to be filled with measurement results
         results_arr = np.empty((n_qubits,n_shots), dtype=np.int8)
 
         for i in range(n_shots):
             logger.debug(f"{self.name} is executing shot number {i+1} of {n_shots} shots")
             
+            # create n data qubits
             qubits = [Qubit(netqasm_connection) for _ in range(n_qubits)]
             
             # apply feature map
@@ -114,6 +139,7 @@ class Client:
             eprs = self.create_or_recv_epr_pairs(min(n_required_eprs, max_eprs), netqasm_connection) # generate first set of EPR pairs
             depth_epr_map = [1 if d in self.layers_with_rcnot else 0 for d in range(q_depth)] # map of which layers have an EPR pair
             
+            # iterate through all parametrized layers
             for j, bit_val in enumerate(depth_epr_map):
                 logger.debug(f"{self.name} entered layer: {j}")
                 
@@ -142,8 +168,10 @@ class Client:
                 qbit.rot_Y(angle=weights_reshaped[q][-1])
                 qubit_results.append(qbit.measure())    
             
+            # flush to netqasm
             netqasm_connection.flush()
             
+            # extract results after netqasm calculated them
             for q, result in enumerate(qubit_results):
                 results_arr[q][i] = result.value
         return results_arr

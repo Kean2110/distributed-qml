@@ -1,10 +1,8 @@
-import functools
 import glob
 from multiprocessing.spawn import prepare
 import os
 import pickle
 import shutil
-import time
 import tracemalloc
 from typing import Iterable, List, Tuple, Union, Literal
 from netqasm.sdk import Qubit, EPRSocket
@@ -15,7 +13,6 @@ import random
 import math
 from sklearn.preprocessing import MinMaxScaler
 from utils.logger import logger
-from utils.config_parser import ConfigParser
 import utils.constants
 import tracemalloc
 
@@ -23,6 +20,11 @@ from yaml import dump
 
 
 def remove_folder_except(folder_path: str, except_paths: list[str]):
+    """
+    Removes the folder except the given paths.
+    :param folder_path: Folder to delete.
+    :param except_paths: Files to leave.
+    """
     for item in os.listdir(folder_path):
         if item not in except_paths:
             item_path = os.path.join(folder_path, item)
@@ -33,6 +35,13 @@ def remove_folder_except(folder_path: str, except_paths: list[str]):
                 
 
 def generate_chunks_with_max_size(max_size: int, depth: int) -> list[int]:
+    """
+    Generate Chunks with a max_size. The last chunk may be smaller in size.
+    
+    :param max_size: Maximum size per chunk.
+    :param depth: Number of elements.
+    :returns: List of chunks.
+    """
     output_length = math.ceil(max_size / depth)
     no_of_full_chunks = depth // max_size
     output_chunks = [max_size] * no_of_full_chunks
@@ -61,6 +70,12 @@ def split_array_by_nth_occurrences(n: int, array, element) -> np.array:
 
 
 def calculate_value_from_shots(result_arrays: list[list[Literal[0,1]]], return_expectation_value: bool = False) -> Literal[0,1]:
+    """
+    Computes the parity or expectation value from measurement results.
+    :param results_arrays: Matrix of measurement results.
+    :param return_exepctation_value: If True, return Exp. Value, if False, return Parity.
+    :returns: either return expection value or the label of the most probable class.
+    """
     bitstrings = np.array(result_arrays).T
     n_shots = len(bitstrings)
     zeros = 0
@@ -155,7 +170,14 @@ def prepare_dataset_iris(n_features: int = 2, lower_bound: float = 0.0, upper_bo
     
 def prepare_dataset_moons(n_samples: int = 100, lower_bound: float = 0.0, upper_bound: float = 1.0, noise: float = None, random_seed: int = 42) -> Tuple[NDArray[np.float_], NDArray[np.float_]]:
     """
-    Loads the moons dataset
+    Loads the moons dataset.
+    :param n_samples: Number of samples.
+    :param lower_bound: Minimum when scaling the data.
+    :param upper_bound: Maximim when scaling the data.
+    :param noise: Dataset noise.
+    :param random_seed: Random seed.
+    
+    :returns: Tuple of data samples and labels.
     """
     moons = make_moons(n_samples=n_samples, noise=noise, random_state=random_seed)
     X = moons[0]
@@ -163,14 +185,16 @@ def prepare_dataset_moons(n_samples: int = 100, lower_bound: float = 0.0, upper_
     scaler = MinMaxScaler(feature_range=(lower_bound, upper_bound))
     X_scaled = scaler.fit_transform(X)
     return X_scaled, y
-
-
-def phase_gate(angle: float, qubit: Qubit):
-    #qubit * np.exp((1j * angle)/2)
-    qubit.rot_Z(angle=angle)
  
  
 def save_classification_report(filename: str, output_dir: str, classification_report: dict):
+    """
+    Save the classificaiton report.
+    
+    :param filename: Filename of report.
+    :param output_dir: Path of output directory.
+    :param classification_report: Report.
+    """
     txt_directory = os.path.join(output_dir, "classification_reports")
     if not os.path.exists(txt_directory):
         os.mkdir(txt_directory)
@@ -179,7 +203,14 @@ def save_classification_report(filename: str, output_dir: str, classification_re
         dump(classification_report, txt_file, sort_keys=False)
 
 
-def load_latest_checkpoint(checkpoint_dir: str):
+def load_latest_checkpoint(checkpoint_dir: str) -> Tuple[list[float], int, list[float], list[float], dict]:
+    """
+    Load the most recent input checkpoint from a given directory.
+    
+    :param checkpoint_dir: Directory to look for checkpoints in.
+    
+    :returns: Weights, iteration number, losses, accuracy scores, and execution times.
+    """
     # List all pickle files that are in the checkpoint dir
     checkpoints = [f for f in glob.glob(os.path.join(checkpoint_dir, "*.pickle"))]
     try:
@@ -197,7 +228,10 @@ def load_latest_checkpoint(checkpoint_dir: str):
         return None, 0, [], [], {}
     
     
-def load_latest_input_checkpoint(checkpoint_dir: str):
+def load_latest_input_checkpoint(checkpoint_dir: str) -> dict:
+    """
+    Load latest input checkpoint when making a test only run.
+    """
     # List all pickle files that are in the checkpoint dir
     checkpoints = [f for f in glob.glob(os.path.join(checkpoint_dir, "*.pickle"))]
     try:
@@ -222,6 +256,11 @@ def upper_bound_constraint(x: Iterable, upper_bound: float = utils.constants.UPP
 
 
 def take_snapshot_and_print_most_consuming(x: int):
+    """
+    Take a memory snapshot and print the Top X most consuming classes.
+    
+    :param x: Number of classes to print.
+    """
     snapshot = tracemalloc.take_snapshot()
     top_stats = snapshot.statistics('traceback')
     print(f"[ Top {x} ]")
@@ -230,8 +269,6 @@ def take_snapshot_and_print_most_consuming(x: int):
 
 
 if __name__ == '__main__':
-    print(calculate_expectation_value_from_shots([[1,1,0,1], [0,1,1,0], [0,0,0,0], [1,1,1,1]]))
-    #print(calculate_parity_from_shots([[1,1,0], [0,0,0], [0,0,0]]))
-    
+    pass
     
     
