@@ -4,7 +4,7 @@ from netqasm.runtime.interface.config import QuantumHardware
 
 # Instructions
 EXIT_INSTRUCTION = "EXIT"
-RUN_INSTRUCTION = "RUN ITERATION"
+RUN_INSTRUCTION = "RUN EPOCH"
 TEST_INSTRUCTION = "TEST"
 
 
